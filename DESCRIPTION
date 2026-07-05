@@ -1,0 +1,28 @@
+Package: RobustLPA
+Title: Robust Latent Profile Analysis
+Version: 0.1.0
+Authors@R: 
+    person("Valerio Riccardo", "Aquila", role = c("aut", "cre"), 
+    email = "valerio_aquila@hotmail.it", comment = c(ORCID = "0009-0004-2231-2141"))
+Description: Provides a comprehensive toolset for estimating Latent Profile 
+    Analysis (LPA) models that are robust to multivariate outliers and missing 
+    data. By integrating a high-performance 'C++' engine via 'RcppArmadillo' 
+    with a Full Information Maximum Likelihood (FIML) approach and Huber 
+    weighting, it reliably extracts latent profiles even in complex datasets. 
+    It supports multiple geometric variance-covariance models, along with 
+    functions for bootstrapped likelihood ratio tests and plotting.
+    For methodological details on the Bootstrapped Likelihood Ratio Test, see
+    Nylund et al. (2007) <doi:10.1080/10705510701575396>. For robust clustering 
+    methods, see Garcia-Escudero et al. (2010) <doi:10.1007/s11634-010-0064-5>.
+License: GPL (>= 3)
+Encoding: UTF-8
+RoxygenNote: 8.0.0
+LinkingTo: Rcpp, RcppArmadillo
+Imports: Rcpp, ggplot2, stats
+NeedsCompilation: yes
+Packaged: 2026-06-30 08:24:49 UTC; hp
+Author: Valerio Riccardo Aquila [aut, cre] (ORCID:
+    <https://orcid.org/0009-0004-2231-2141>)
+Maintainer: Valerio Riccardo Aquila <valerio_aquila@hotmail.it>
+Repository: CRAN
+Date/Publication: 2026-07-05 11:00:02 UTC
