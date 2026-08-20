@@ -2,24 +2,44 @@
 % Please edit documentation in R/robust_mean.R
 \name{robust_mean}
 \alias{robust_mean}
-\title{Calculate the robust mean}
+\title{Calculate a Simple Robust (Trimmed) Mean}
 \usage{
 robust_mean(data, threshold = 10)
 }
 \arguments{
-\item{data}{A matrix or data.frame}
+\item{data}{A matrix or data.frame of numeric observations.}
 
-\item{threshold}{Maximum distance allowed to not be considered an outlier}
+\item{threshold}{Maximum Euclidean distance to the coordinate-wise median
+for an observation to be included in the average. Default \code{10}.}
 }
 \value{
 A numeric vector representing the robust mean of the variables.
+  If no observation falls within \code{threshold} of the median, returns a
+  vector of zeros with a warning.
 }
 \description{
-Calculate the robust mean
+Computes a one-step trimmed centroid: an observation is included in the
+average only if its Euclidean distance to the coordinate-wise median of
+\code{data} is below \code{threshold}. This is a quick, easy-to-reason-about
+robust location estimate, not an iterative M-estimator; for the full
+robust mixture-model estimation used elsewhere in this package, see
+\code{\link{robust_lpa}}.
+}
+\details{
+\code{threshold} is a distance \emph{from the coordinate-wise median of
+\code{data}}, not from the origin -- so a sensible value depends on the
+scale and spread of your variables. A reasonable starting point is a
+small multiple of a typical per-variable standard deviation times
+\code{sqrt(ncol(data))} (roughly the scale of a Euclidean distance across
+all variables); \code{\link[stats]{mahalanobis}}-based thresholds (as used
+internally by \code{\link{robust_lpa}}) account for correlation and scale
+automatically and are preferable when variables are on very different
+scales.
 }
 \examples{
-data(iris)
-r_mean <- robust_mean(iris[1:30, 1:2])
+data(neuro_data)
+x <- scale(as.matrix(neuro_data[, c("Memory", "RT_Stroop")]))
+r_mean <- robust_mean(x, threshold = 3)
 
 # Print the calculated robust means
 r_mean

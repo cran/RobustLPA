@@ -6,6 +6,7 @@
 \usage{
 plot_robust_lpa(
   model,
+  which_model = NULL,
   title = "Robust Latent Profiles",
   xlab = "Variables",
   ylab = "Value",
@@ -14,7 +15,16 @@ plot_robust_lpa(
 )
 }
 \arguments{
-\item{model}{A model object returned by robust_lpa or estimate_profiles_robust.}
+\item{model}{Either a single fitted model object returned by
+\code{\link{robust_lpa}}, or the list returned by
+\code{\link{estimate_profiles_robust}}. In the latter case, the model
+with the lowest BIC in \code{model$fit_table} is selected automatically
+(a message reports which one), unless \code{which_model} is given.}
+
+\item{which_model}{Optional string, the name of a specific model to plot
+when \code{model} is an \code{\link{estimate_profiles_robust}} result
+(one of \code{names(model$models)}, e.g. \code{"model_6_profiles_3"}).
+Ignored when \code{model} is already a single fitted model.}
 
 \item{title}{The title of the plot. Default is "Robust Latent Profiles".}
 
@@ -30,11 +40,13 @@ plot_robust_lpa(
 A ggplot object.
 }
 \description{
-Automatically generates a professional profile plot using ggplot2 from an estimated
-robust LPA model.
+Automatically generates a professional profile plot using ggplot2 from an
+estimated robust LPA model.
 }
 \examples{
-data(iris)
-fit <- robust_lpa(data = iris[1:30, 1:2], G = 2, model = 1, n_starts = 1)
+data(neuro_data)
+x <- scale(as.matrix(neuro_data[, c("Memory", "RT_Stroop")]))
+fit <- suppressWarnings(robust_lpa(data = x, G = 2, model = 1, n_starts = 3))
+print(fit)  # concise overview (print.robust_lpa())
 plot_robust_lpa(fit)
 }

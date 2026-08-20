@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>Getting Started with RobustLPA</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Getting Started with RobustLPA</h1>
+
+
+
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(RobustLPA)</span></code></pre></div>
+<div id="introduction" class="section level2">
+<h2>1. Introduction</h2>
+<p>Latent Profile Analysis (LPA) groups observations into a small number
+of unobserved (“latent”) profiles based on a set of continuous indicator
+variables, by fitting a finite mixture of multivariate normal
+distributions. It is widely used in psychology, education, and the
+health sciences to identify subgroups of people who share a similar
+pattern of scores – without specifying the groups in advance.</p>
+<p>Standard (maximum-likelihood) LPA estimation is not robust: a handful
+of extreme or mismeasured observations can distort the estimated profile
+means and covariances, sometimes badly enough to change which
+observations end up in which profile (Garcia-Escudero et al., 2010).
+<strong>RobustLPA</strong> provides:</p>
+<ul>
+<li>Two estimation engines: classical Expectation-Maximization
+(<strong>EM</strong>) and Bayesian <strong>MCMC</strong> (Gibbs
+sampling), both with an optional Huber-type robust mode
+(<code>robust = TRUE</code>, the default) that down-weights outlying
+observations, or a classical (non-robust) mode
+(<code>robust = FALSE</code>) for comparison.</li>
+<li>Six variance-covariance parameterizations
+(<code>model = 1:6</code>), from a single shared diagonal covariance to
+a fully unconstrained covariance per profile, so model complexity can be
+chosen to fit the data rather than assumed.</li>
+<li>LASSO-type regularization of the profile means, with cross-validated
+penalty selection.</li>
+<li>Native handling of missing data via Full Information Maximum
+Likelihood (FIML) – no need to drop or impute incomplete rows.</li>
+<li>Tools for the two questions every LPA analysis has to answer:
+<em>how many profiles?</em> (<code>estimate_profiles_robust()</code>,
+the bootstrapped likelihood ratio test <code>blrt_robust()</code>) and
+<em>how do profiles relate to variables outside the model?</em>
+(<code>bch_robust()</code>, implementing the Bolck-Croon-Hagenaars
+three-step method).</li>
+<li>Parallel computing (<code>cores =</code>) throughout, for the EM
+restarts / MCMC chains of a single fit, for grid searches over models
+and profile counts, and for the bootstrap procedures.</li>
+</ul>
+<p>This vignette walks through a complete analysis on the dataset
+bundled with the package, <code>neuro_data</code>. Progress messages and
+the log-likelihood-decrease warnings that Huber-weighted robust
+estimation can occasionally emit (expected behavior, explained in the
+“Robust estimation” section of <code>?robust_lpa</code>) are suppressed
+below to keep the output readable; they do not affect any of the fitted
+values shown.</p>
+</div>
+<div id="the-example-dataset" class="section level2">
+<h2>2. The example dataset</h2>
+<p><code>neuro_data</code> contains simulated neuropsychological test
+scores and reaction times for 250 people belonging to two true, known
+groups: “Healthy” (n = 150) and “Pathological” (n = 100). The group
+label (<code>True_Profile</code>) is included only so that recovered
+profiles can be checked against ground truth – it is never used for
+estimation, since LPA is unsupervised.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">data</span>(neuro_data)</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="fu">str</span>(neuro_data)</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="co">#&gt; &#39;data.frame&#39;:    250 obs. of  7 variables:</span></span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="co">#&gt;  $ ID                 : int  1 2 3 4 5 6 7 8 9 10 ...</span></span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="co">#&gt;  $ True_Profile       : chr  &quot;Healthy&quot; &quot;Healthy&quot; &quot;Healthy&quot; &quot;Healthy&quot; ...</span></span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a><span class="co">#&gt;  $ Memory             : num  81.7 81.6 96.1 80.9 72.3 ...</span></span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a><span class="co">#&gt;  $ Attention          : num  66.2 76.7 80.3 71.7 77.6 ...</span></span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a><span class="co">#&gt;  $ Executive_Functions: num  69.3 75.4 78.6 76.9 64.6 ...</span></span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a><span class="co">#&gt;  $ RT_Stroop          : num  399 446 458 434 361 ...</span></span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a><span class="co">#&gt;  $ RT_TMT             : num  441 430 375 467 455 ...</span></span>
+<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a><span class="fu">table</span>(neuro_data<span class="sc">$</span>True_Profile)</span>
+<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a><span class="co">#&gt;      Healthy Pathological </span></span>
+<span id="cb2-14"><a href="#cb2-14" tabindex="-1"></a><span class="co">#&gt;          150          100</span></span></code></pre></div>
+<p>Two of the five continuous variables (<code>Attention</code>,
+<code>Executive_Functions</code>) are, by design, identically
+distributed in both groups: they carry no group signal and act as
+“noise” variables. <code>Memory</code>, <code>RT_Stroop</code>, and
+<code>RT_TMT</code> differ between groups, and the two reaction-time
+variables additionally differ in variance and in how strongly they
+correlate with each other – a genuine difference in covariance
+<em>structure</em>, not just location, between the two groups (see
+<code>?neuro_data</code>). A subset of the Pathological group also
+carries extra, variable-magnitude outlying values on the two
+reaction-time variables, simulating measurement contamination.</p>
+<p>As with any LPA analysis, we standardize the indicators first, since
+several parts of the package (LASSO shrinkage in particular) are only
+meaningful on a common scale:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>vars <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;Memory&quot;</span>, <span class="st">&quot;Attention&quot;</span>, <span class="st">&quot;Executive_Functions&quot;</span>, <span class="st">&quot;RT_Stroop&quot;</span>, <span class="st">&quot;RT_TMT&quot;</span>)</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="fu">scale</span>(<span class="fu">as.matrix</span>(neuro_data[, vars]))</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="fu">head</span>(x)</span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="co">#&gt;           Memory  Attention Executive_Functions  RT_Stroop     RT_TMT</span></span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="co">#&gt; [1,]  0.41669327 -0.1948912          -0.3123633 -0.6660181 -0.6352654</span></span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="co">#&gt; [2,]  0.41163048  1.0144344           0.4423769 -0.2481754 -0.7173859</span></span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="co">#&gt; [3,]  1.15527236  1.4246020           0.8401542 -0.1408952 -1.1412761</span></span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="co">#&gt; [4,]  0.37585978  0.4405564           0.6296725 -0.3562865 -0.4329801</span></span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a><span class="co">#&gt; [5,] -0.06607811  1.1194497          -0.8959079 -0.9913752 -0.5272060</span></span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a><span class="co">#&gt; [6,]  0.03892365 -1.1028652          -1.4977872 -0.5733588 -0.6258035</span></span></code></pre></div>
+</div>
+<div id="choosing-a-variance-covariance-model" class="section level2">
+<h2>3. Choosing a variance-covariance model</h2>
+<p><code>robust_lpa()</code>‘s <code>model</code> argument selects how
+the profiles’ covariance matrices are constrained, from most to least
+parsimonious:</p>
+<table>
+<thead>
+<tr class="header">
+<th align="center"><code>model</code></th>
+<th align="left">Variances across profiles</th>
+<th align="left">Covariances across profiles</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="center">1</td>
+<td align="left">Equal (shared)</td>
+<td align="left">Zero (diagonal), shared</td>
+</tr>
+<tr class="even">
+<td align="center">2</td>
+<td align="left">Varying</td>
+<td align="left">Zero (diagonal), own</td>
+</tr>
+<tr class="odd">
+<td align="center">3</td>
+<td align="left">Equal (shared)</td>
+<td align="left">Equal (shared), full</td>
+</tr>
+<tr class="even">
+<td align="center">4</td>
+<td align="left">Varying</td>
+<td align="left">Shared <em>correlation structure</em>, own
+variances</td>
+</tr>
+<tr class="odd">
+<td align="center">5</td>
+<td align="left">Equal (shared)</td>
+<td align="left">Own <em>correlation structure</em>, shared
+variances</td>
+</tr>
+<tr class="even">
+<td align="center">6</td>
+<td align="left">Varying</td>
+<td align="left">Varying (fully unconstrained per profile)</td>
+</tr>
+</tbody>
+</table>
+<p>More parsimonious models (1-2) are more stable with smaller samples
+but can under-fit real covariance structure; less parsimonious models
+(especially 6) can fit better but need more data and are more prone to
+numerically unstable, near-singular covariance estimates for small or
+overlapping profiles – <code>robust_lpa()</code> guards against this
+automatically and will warn if a fitted profile ends up implausibly
+small (see <code>?robust_lpa</code>). Section 7 below shows how to let
+BIC choose among all six objectively, rather than assuming one.</p>
+</div>
+<div id="fitting-a-single-model-with-the-em-engine" class="section level2">
+<h2>4. Fitting a single model with the EM engine</h2>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>fit_em <span class="ot">&lt;-</span> <span class="fu">robust_lpa</span>(x, <span class="at">G =</span> <span class="dv">2</span>, <span class="at">model =</span> <span class="dv">6</span>, <span class="at">n_starts =</span> <span class="dv">5</span>)</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>fit_em</span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a><span class="co">#&gt; &lt;robust_lpa&gt; EM | model 6 | G = 2 | N = 250</span></span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a><span class="co">#&gt; LogLik = -1267.0 | AIC = 2616.0 | BIC = 2760.4 | Entropy = 0.864</span></span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a><span class="co">#&gt; Proportions: P1=0.61, P2=0.39</span></span></code></pre></div>
+<p><code>summary()</code> adds per-profile means and sizes:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="fu">summary</span>(fit_em)</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a><span class="co">#&gt; robust_lpa summary -- EM | model 6 | G = 2 | N = 250</span></span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a><span class="co">#&gt; Profile means:</span></span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a><span class="co">#&gt;                        P1    P2</span></span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a><span class="co">#&gt; Memory               0.57 -0.89</span></span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a><span class="co">#&gt; Attention           -0.02  0.04</span></span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a><span class="co">#&gt; Executive_Functions  0.06 -0.10</span></span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a><span class="co">#&gt; RT_Stroop           -0.63  0.99</span></span>
+<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a><span class="co">#&gt; RT_TMT              -0.62  0.99</span></span>
+<span id="cb5-11"><a href="#cb5-11" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb5-12"><a href="#cb5-12" tabindex="-1"></a><span class="co">#&gt; Profile sizes:</span></span>
+<span id="cb5-13"><a href="#cb5-13" tabindex="-1"></a><span class="co">#&gt;  Profile   N Proportion</span></span>
+<span id="cb5-14"><a href="#cb5-14" tabindex="-1"></a><span class="co">#&gt;       P1 157      0.612</span></span>
+<span id="cb5-15"><a href="#cb5-15" tabindex="-1"></a><span class="co">#&gt;       P2  93      0.388</span></span>
+<span id="cb5-16"><a href="#cb5-16" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb5-17"><a href="#cb5-17" tabindex="-1"></a><span class="co">#&gt; Fit: LogLik = -1267.0 | AIC = 2616.0 | BIC = 2760.4 | Entropy = 0.864</span></span></code></pre></div>
+<p>Since <code>neuro_data</code> includes the ground-truth group label,
+we can check how well the fitted profiles recover it:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="fu">table</span>(<span class="at">True_Profile =</span> neuro_data<span class="sc">$</span>True_Profile, <span class="at">Assigned =</span> fit_em<span class="sc">$</span>assignments)</span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a><span class="co">#&gt;               Assigned</span></span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a><span class="co">#&gt; True_Profile     1   2</span></span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a><span class="co">#&gt;   Healthy      145   5</span></span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a><span class="co">#&gt;   Pathological  12  88</span></span></code></pre></div>
+<div id="robust-vs.-classical-estimation" class="section level3">
+<h3>Robust vs. classical estimation</h3>
+<p><code>robust = TRUE</code> (the default) down-weights each
+observation’s contribution to its assigned profile’s mean/covariance
+once its Mahalanobis distance exceeds a chi-squared cutoff (controlled
+by <code>alpha</code>). Comparing against <code>robust = FALSE</code>
+shows the effect of the contamination built into
+<code>RT_Stroop</code>/<code>RT_TMT</code>:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>fit_classical <span class="ot">&lt;-</span> <span class="fu">robust_lpa</span>(x, <span class="at">G =</span> <span class="dv">2</span>, <span class="at">model =</span> <span class="dv">6</span>, <span class="at">n_starts =</span> <span class="dv">5</span>, <span class="at">robust =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a><span class="fu">rbind</span>(</span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a>  <span class="at">robust    =</span> <span class="fu">sapply</span>(fit_em<span class="sc">$</span>means, <span class="st">`</span><span class="at">[</span><span class="st">`</span>, <span class="st">&quot;RT_Stroop&quot;</span>),</span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a>  <span class="at">classical =</span> <span class="fu">sapply</span>(fit_classical<span class="sc">$</span>means, <span class="st">`</span><span class="at">[</span><span class="st">`</span>, <span class="st">&quot;RT_Stroop&quot;</span>)</span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a>)</span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a><span class="co">#&gt;            RT_Stroop  RT_Stroop</span></span>
+<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a><span class="co">#&gt; robust    -0.6295026  0.9918472</span></span>
+<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a><span class="co">#&gt; classical  0.9910631 -0.6269938</span></span></code></pre></div>
+</div>
+</div>
+<div id="lasso-regularization" class="section level2">
+<h2>5. LASSO regularization</h2>
+<p>For higher-dimensional indicator sets, <code>lambda</code> applies
+LASSO-type soft-thresholding shrinkage to the profile means (meaningful
+only on standardized data, as used throughout this vignette):</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a>fit_lasso <span class="ot">&lt;-</span> <span class="fu">robust_lpa</span>(x, <span class="at">G =</span> <span class="dv">2</span>, <span class="at">model =</span> <span class="dv">6</span>, <span class="at">n_starts =</span> <span class="dv">3</span>, <span class="at">lambda =</span> <span class="fl">0.15</span>)</span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a><span class="fu">summary</span>(fit_lasso)</span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a><span class="co">#&gt; robust_lpa summary -- EM | model 6 | G = 2 | N = 250</span></span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a><span class="co">#&gt; Profile means:</span></span>
+<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a><span class="co">#&gt;                        P1    P2</span></span>
+<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a><span class="co">#&gt; Memory               0.34 -0.35</span></span>
+<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a><span class="co">#&gt; Attention            0.00  0.00</span></span>
+<span id="cb8-9"><a href="#cb8-9" tabindex="-1"></a><span class="co">#&gt; Executive_Functions  0.00  0.00</span></span>
+<span id="cb8-10"><a href="#cb8-10" tabindex="-1"></a><span class="co">#&gt; RT_Stroop           -0.45  0.47</span></span>
+<span id="cb8-11"><a href="#cb8-11" tabindex="-1"></a><span class="co">#&gt; RT_TMT              -0.44  0.46</span></span>
+<span id="cb8-12"><a href="#cb8-12" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb8-13"><a href="#cb8-13" tabindex="-1"></a><span class="co">#&gt; Profile sizes:</span></span>
+<span id="cb8-14"><a href="#cb8-14" tabindex="-1"></a><span class="co">#&gt;  Profile   N Proportion</span></span>
+<span id="cb8-15"><a href="#cb8-15" tabindex="-1"></a><span class="co">#&gt;       P1 141      0.509</span></span>
+<span id="cb8-16"><a href="#cb8-16" tabindex="-1"></a><span class="co">#&gt;       P2 109      0.491</span></span>
+<span id="cb8-17"><a href="#cb8-17" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb8-18"><a href="#cb8-18" tabindex="-1"></a><span class="co">#&gt; Fit: LogLik = -1305.3 | AIC = 2684.6 | BIC = 2814.9 | Entropy = 0.633</span></span></code></pre></div>
+<p>Rather than fixing <code>lambda</code> by hand,
+<code>estimate_profiles_robust(tune_lasso = TRUE)</code> selects it by
+k-fold cross-validation (see Section 7).</p>
+</div>
+<div id="missing-data-fiml" class="section level2">
+<h2>6. Missing data (FIML)</h2>
+<p><code>robust_lpa()</code> handles missing values natively via Full
+Information Maximum Likelihood – no listwise deletion or imputation
+needed – for both engines and every variance-covariance model:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a>x_na <span class="ot">&lt;-</span> x</span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1</span>)</span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a>na_idx <span class="ot">&lt;-</span> <span class="fu">cbind</span>(</span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a>  <span class="fu">sample</span>(<span class="fu">nrow</span>(x_na), <span class="dv">15</span>),</span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a>  <span class="fu">sample</span>(<span class="fu">ncol</span>(x_na), <span class="dv">15</span>, <span class="at">replace =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a>)</span>
+<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a>x_na[na_idx] <span class="ot">&lt;-</span> <span class="cn">NA</span></span>
+<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a><span class="fu">mean</span>(<span class="fu">is.na</span>(x_na))</span>
+<span id="cb9-9"><a href="#cb9-9" tabindex="-1"></a><span class="co">#&gt; [1] 0.012</span></span>
+<span id="cb9-10"><a href="#cb9-10" tabindex="-1"></a></span>
+<span id="cb9-11"><a href="#cb9-11" tabindex="-1"></a>fit_fiml <span class="ot">&lt;-</span> <span class="fu">robust_lpa</span>(x_na, <span class="at">G =</span> <span class="dv">2</span>, <span class="at">model =</span> <span class="dv">6</span>, <span class="at">n_starts =</span> <span class="dv">5</span>)</span>
+<span id="cb9-12"><a href="#cb9-12" tabindex="-1"></a><span class="fu">summary</span>(fit_fiml)</span>
+<span id="cb9-13"><a href="#cb9-13" tabindex="-1"></a><span class="co">#&gt; robust_lpa summary -- EM | model 6 | G = 2 | N = 250</span></span>
+<span id="cb9-14"><a href="#cb9-14" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb9-15"><a href="#cb9-15" tabindex="-1"></a><span class="co">#&gt; Profile means:</span></span>
+<span id="cb9-16"><a href="#cb9-16" tabindex="-1"></a><span class="co">#&gt;                        P1    P2</span></span>
+<span id="cb9-17"><a href="#cb9-17" tabindex="-1"></a><span class="co">#&gt; Memory               0.57 -0.89</span></span>
+<span id="cb9-18"><a href="#cb9-18" tabindex="-1"></a><span class="co">#&gt; Attention           -0.02  0.02</span></span>
+<span id="cb9-19"><a href="#cb9-19" tabindex="-1"></a><span class="co">#&gt; Executive_Functions  0.06 -0.09</span></span>
+<span id="cb9-20"><a href="#cb9-20" tabindex="-1"></a><span class="co">#&gt; RT_Stroop           -0.63  0.99</span></span>
+<span id="cb9-21"><a href="#cb9-21" tabindex="-1"></a><span class="co">#&gt; RT_TMT              -0.62  0.97</span></span>
+<span id="cb9-22"><a href="#cb9-22" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb9-23"><a href="#cb9-23" tabindex="-1"></a><span class="co">#&gt; Profile sizes:</span></span>
+<span id="cb9-24"><a href="#cb9-24" tabindex="-1"></a><span class="co">#&gt;  Profile   N Proportion</span></span>
+<span id="cb9-25"><a href="#cb9-25" tabindex="-1"></a><span class="co">#&gt;       P1 156       0.61</span></span>
+<span id="cb9-26"><a href="#cb9-26" tabindex="-1"></a><span class="co">#&gt;       P2  94       0.39</span></span>
+<span id="cb9-27"><a href="#cb9-27" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb9-28"><a href="#cb9-28" tabindex="-1"></a><span class="co">#&gt; Fit: LogLik = -1256.6 | AIC = 2595.1 | BIC = 2739.5 | Entropy = 0.858</span></span></code></pre></div>
+</div>
+<div id="choosing-the-number-of-profiles-and-the-covariance-model" class="section level2">
+<h2>7. Choosing the number of profiles and the covariance model</h2>
+<p><code>estimate_profiles_robust()</code> fits every combination of
+<code>n_profiles</code> and <code>models</code> and collects their fit
+indices in one table, so models can be compared by AIC/BIC/SABIC rather
+than assumed in advance:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a>grid <span class="ot">&lt;-</span> <span class="fu">estimate_profiles_robust</span>(x, <span class="at">n_profiles =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">3</span>, <span class="at">models =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">6</span>, <span class="at">n_starts =</span> <span class="dv">5</span>)</span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a>grid<span class="sc">$</span>fit_table[<span class="fu">order</span>(grid<span class="sc">$</span>fit_table<span class="sc">$</span>BIC), ]</span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a><span class="co">#&gt;    Model Profiles    LogLik Parameters      AIC      BIC    SABIC    Entropy</span></span>
+<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a><span class="co">#&gt; 17     6        2 -1267.024         41 2616.048 2760.428 2630.455 0.86419639</span></span>
+<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a><span class="co">#&gt; 18     6        3 -1235.911         62 2595.821 2814.152 2617.607 0.91629446</span></span>
+<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a><span class="co">#&gt; 8      3        2 -1339.403         26 2730.806 2822.364 2739.942 0.92443096</span></span>
+<span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a><span class="co">#&gt; 9      3        3 -1326.983         32 2717.967 2830.653 2729.211 0.78779567</span></span>
+<span id="cb10-8"><a href="#cb10-8" tabindex="-1"></a><span class="co">#&gt; 1      1        1 -1396.510         10 2813.020 2848.235 2816.534 1.00000000</span></span>
+<span id="cb10-9"><a href="#cb10-9" tabindex="-1"></a><span class="co">#&gt; 4      2        1 -1396.510         10 2813.020 2848.235 2816.534 1.00000000</span></span>
+<span id="cb10-10"><a href="#cb10-10" tabindex="-1"></a><span class="co">#&gt; 15     5        3 -1290.310         52 2684.621 2867.737 2702.892 0.96146470</span></span>
+<span id="cb10-11"><a href="#cb10-11" tabindex="-1"></a><span class="co">#&gt; 2      1        2 -1395.965         16 2823.929 2880.273 2829.551 0.01849328</span></span>
+<span id="cb10-12"><a href="#cb10-12" tabindex="-1"></a><span class="co">#&gt; 11     4        2 -1360.579         31 2783.158 2892.323 2794.051 0.57536898</span></span>
+<span id="cb10-13"><a href="#cb10-13" tabindex="-1"></a><span class="co">#&gt; 12     4        3 -1335.707         42 2755.414 2903.316 2770.172 0.83301661</span></span>
+<span id="cb10-14"><a href="#cb10-14" tabindex="-1"></a><span class="co">#&gt; 7      3        1 -1396.510         20 2833.020 2903.450 2840.048 1.00000000</span></span>
+<span id="cb10-15"><a href="#cb10-15" tabindex="-1"></a><span class="co">#&gt; 10     4        1 -1396.510         20 2833.020 2903.450 2840.048 1.00000000</span></span>
+<span id="cb10-16"><a href="#cb10-16" tabindex="-1"></a><span class="co">#&gt; 13     5        1 -1396.510         20 2833.020 2903.450 2840.048 1.00000000</span></span>
+<span id="cb10-17"><a href="#cb10-17" tabindex="-1"></a><span class="co">#&gt; 16     6        1 -1396.510         20 2833.020 2903.450 2840.048 1.00000000</span></span>
+<span id="cb10-18"><a href="#cb10-18" tabindex="-1"></a><span class="co">#&gt; 3      1        3 -1392.067         22 2828.133 2905.606 2835.864 0.95448733</span></span>
+<span id="cb10-19"><a href="#cb10-19" tabindex="-1"></a><span class="co">#&gt; 5      2        2 -1395.596         21 2833.192 2907.143 2840.571 0.02707980</span></span>
+<span id="cb10-20"><a href="#cb10-20" tabindex="-1"></a><span class="co">#&gt; 6      2        3 -1374.018         32 2812.036 2924.723 2823.280 0.86454683</span></span>
+<span id="cb10-21"><a href="#cb10-21" tabindex="-1"></a><span class="co">#&gt; 14     5        2 -1383.117         36 2838.233 2965.006 2850.883 0.32571177</span></span>
+<span id="cb10-22"><a href="#cb10-22" tabindex="-1"></a><span class="co">#&gt;    Min_Size Max_Size Lambda</span></span>
+<span id="cb10-23"><a href="#cb10-23" tabindex="-1"></a><span class="co">#&gt; 17    0.372    0.628      0</span></span>
+<span id="cb10-24"><a href="#cb10-24" tabindex="-1"></a><span class="co">#&gt; 18    0.064    0.612      0</span></span>
+<span id="cb10-25"><a href="#cb10-25" tabindex="-1"></a><span class="co">#&gt; 8     0.284    0.716      0</span></span>
+<span id="cb10-26"><a href="#cb10-26" tabindex="-1"></a><span class="co">#&gt; 9     0.176    0.540      0</span></span>
+<span id="cb10-27"><a href="#cb10-27" tabindex="-1"></a><span class="co">#&gt; 1     1.000    1.000      0</span></span>
+<span id="cb10-28"><a href="#cb10-28" tabindex="-1"></a><span class="co">#&gt; 4     1.000    1.000      0</span></span>
+<span id="cb10-29"><a href="#cb10-29" tabindex="-1"></a><span class="co">#&gt; 15    0.004    0.708      0</span></span>
+<span id="cb10-30"><a href="#cb10-30" tabindex="-1"></a><span class="co">#&gt; 2     0.480    0.520      0</span></span>
+<span id="cb10-31"><a href="#cb10-31" tabindex="-1"></a><span class="co">#&gt; 11    0.452    0.548      0</span></span>
+<span id="cb10-32"><a href="#cb10-32" tabindex="-1"></a><span class="co">#&gt; 12    0.104    0.728      0</span></span>
+<span id="cb10-33"><a href="#cb10-33" tabindex="-1"></a><span class="co">#&gt; 7     1.000    1.000      0</span></span>
+<span id="cb10-34"><a href="#cb10-34" tabindex="-1"></a><span class="co">#&gt; 10    1.000    1.000      0</span></span>
+<span id="cb10-35"><a href="#cb10-35" tabindex="-1"></a><span class="co">#&gt; 13    1.000    1.000      0</span></span>
+<span id="cb10-36"><a href="#cb10-36" tabindex="-1"></a><span class="co">#&gt; 16    1.000    1.000      0</span></span>
+<span id="cb10-37"><a href="#cb10-37" tabindex="-1"></a><span class="co">#&gt; 3     0.120    0.672      0</span></span>
+<span id="cb10-38"><a href="#cb10-38" tabindex="-1"></a><span class="co">#&gt; 5     0.448    0.552      0</span></span>
+<span id="cb10-39"><a href="#cb10-39" tabindex="-1"></a><span class="co">#&gt; 6     0.256    0.424      0</span></span>
+<span id="cb10-40"><a href="#cb10-40" tabindex="-1"></a><span class="co">#&gt; 14    0.448    0.552      0</span></span></code></pre></div>
+<p><code>neuro_data</code>’s genuine group-level covariance difference
+(Section 2) was specifically calibrated so that the fully unconstrained
+model (<code>model = 6</code>) at two profiles fits measurably better
+than more parsimonious alternatives, despite its larger parameter
+penalty – if you reproduce this table,
+<code>Model = 6, Profiles = 2</code> should be at or very near the top
+by BIC. Each element of <code>grid$models</code> is a fitted
+<code>robust_lpa</code> object:</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="fu">summary</span>(grid<span class="sc">$</span>models[[<span class="st">&quot;model_6_profiles_2&quot;</span>]])</span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a><span class="co">#&gt; robust_lpa summary -- EM | model 6 | G = 2 | N = 250</span></span>
+<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a><span class="co">#&gt; Profile means:</span></span>
+<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a><span class="co">#&gt;                        P1    P2</span></span>
+<span id="cb11-6"><a href="#cb11-6" tabindex="-1"></a><span class="co">#&gt; Memory              -0.89  0.57</span></span>
+<span id="cb11-7"><a href="#cb11-7" tabindex="-1"></a><span class="co">#&gt; Attention            0.04 -0.02</span></span>
+<span id="cb11-8"><a href="#cb11-8" tabindex="-1"></a><span class="co">#&gt; Executive_Functions -0.10  0.06</span></span>
+<span id="cb11-9"><a href="#cb11-9" tabindex="-1"></a><span class="co">#&gt; RT_Stroop            0.99 -0.63</span></span>
+<span id="cb11-10"><a href="#cb11-10" tabindex="-1"></a><span class="co">#&gt; RT_TMT               0.99 -0.62</span></span>
+<span id="cb11-11"><a href="#cb11-11" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb11-12"><a href="#cb11-12" tabindex="-1"></a><span class="co">#&gt; Profile sizes:</span></span>
+<span id="cb11-13"><a href="#cb11-13" tabindex="-1"></a><span class="co">#&gt;  Profile   N Proportion</span></span>
+<span id="cb11-14"><a href="#cb11-14" tabindex="-1"></a><span class="co">#&gt;       P1  93      0.388</span></span>
+<span id="cb11-15"><a href="#cb11-15" tabindex="-1"></a><span class="co">#&gt;       P2 157      0.612</span></span>
+<span id="cb11-16"><a href="#cb11-16" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb11-17"><a href="#cb11-17" tabindex="-1"></a><span class="co">#&gt; Fit: LogLik = -1267.0 | AIC = 2616.0 | BIC = 2760.4 | Entropy = 0.864</span></span></code></pre></div>
+<p><code>plot_robust_lpa()</code> accepts either a single fit or a full
+grid (in which case it plots the lowest-BIC model automatically):</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a><span class="fu">plot_robust_lpa</span>(grid, <span class="at">title =</span> <span class="st">&quot;Best-fitting model (lowest BIC)&quot;</span>)</span></code></pre></div>
+<p><img role="img" aria-label="Profile plot of the best-fitting model" src="data:image/png;base64,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" alt="Profile plot of the best-fitting model" /></p>
+<p>Cross-validated LASSO tuning uses the same grid interface:</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a>grid_lasso <span class="ot">&lt;-</span> <span class="fu">estimate_profiles_robust</span>(</span>
+<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a>  x, <span class="at">n_profiles =</span> <span class="dv">2</span>, <span class="at">models =</span> <span class="dv">6</span>, <span class="at">n_starts =</span> <span class="dv">3</span>,</span>
+<span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a>  <span class="at">tune_lasso =</span> <span class="cn">TRUE</span>, <span class="at">k_folds =</span> <span class="dv">5</span>, <span class="at">lambda_grid =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="fl">0.05</span>, <span class="fl">0.1</span>, <span class="fl">0.2</span>)</span>
+<span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a>)</span>
+<span id="cb13-5"><a href="#cb13-5" tabindex="-1"></a>grid_lasso<span class="sc">$</span>fit_table[, <span class="fu">c</span>(<span class="st">&quot;Model&quot;</span>, <span class="st">&quot;Profiles&quot;</span>, <span class="st">&quot;BIC&quot;</span>, <span class="st">&quot;Lambda&quot;</span>)]</span>
+<span id="cb13-6"><a href="#cb13-6" tabindex="-1"></a><span class="co">#&gt;   Model Profiles      BIC Lambda</span></span>
+<span id="cb13-7"><a href="#cb13-7" tabindex="-1"></a><span class="co">#&gt; 1     6        2 2760.428      0</span></span></code></pre></div>
+</div>
+<div id="confirming-the-number-of-profiles-the-bootstrapped-likelihood-ratio-test" class="section level2">
+<h2>8. Confirming the number of profiles: the bootstrapped likelihood
+ratio test</h2>
+<p>BIC alone does not come with a significance test for “is
+<code>G</code> profiles actually better than <code>G - 1</code>?”.
+<code>blrt_robust()</code> answers this via parametric bootstrap
+(Nylund, Asparouhov &amp; Muthen, 2007): it simulates data under the
+simpler (<code>G - 1</code>)-profile model, refits both models to each
+simulated dataset, and builds a reference distribution for the observed
+likelihood ratio. <code>n_samples</code> is kept small below for a fast
+vignette build; for publication-grade inference use at least 200-500
+(and consider <code>cores &gt; 1</code>, see Section 11):</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a>blrt_res <span class="ot">&lt;-</span> <span class="fu">blrt_robust</span>(x, <span class="at">G =</span> <span class="dv">2</span>, <span class="at">model =</span> <span class="dv">6</span>, <span class="at">n_samples =</span> <span class="dv">20</span>, <span class="at">n_starts =</span> <span class="dv">3</span>)</span>
+<span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a>blrt_res</span>
+<span id="cb14-3"><a href="#cb14-3" tabindex="-1"></a><span class="co">#&gt; $LRT_Observed</span></span>
+<span id="cb14-4"><a href="#cb14-4" tabindex="-1"></a><span class="co">#&gt; [1] 258.9722</span></span>
+<span id="cb14-5"><a href="#cb14-5" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb14-6"><a href="#cb14-6" tabindex="-1"></a><span class="co">#&gt; $Bootstrap_LRTs</span></span>
+<span id="cb14-7"><a href="#cb14-7" tabindex="-1"></a><span class="co">#&gt;  [1] 49.27097 41.25416 35.18181 40.00441 40.98219 44.83117 35.82499 37.53378</span></span>
+<span id="cb14-8"><a href="#cb14-8" tabindex="-1"></a><span class="co">#&gt;  [9] 45.01754 37.92280 49.20367 58.41630 37.32596 30.60113 44.64631 38.92990</span></span>
+<span id="cb14-9"><a href="#cb14-9" tabindex="-1"></a><span class="co">#&gt; [17] 27.91325 38.86899 33.34014 26.18940</span></span>
+<span id="cb14-10"><a href="#cb14-10" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb14-11"><a href="#cb14-11" tabindex="-1"></a><span class="co">#&gt; $p_value</span></span>
+<span id="cb14-12"><a href="#cb14-12" tabindex="-1"></a><span class="co">#&gt; [1] 0.04761905</span></span>
+<span id="cb14-13"><a href="#cb14-13" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb14-14"><a href="#cb14-14" tabindex="-1"></a><span class="co">#&gt; $Bootstrap_Failures</span></span>
+<span id="cb14-15"><a href="#cb14-15" tabindex="-1"></a><span class="co">#&gt; [1] 0</span></span></code></pre></div>
+<p>A small <code>p_value</code> supports keeping the second profile over
+collapsing to a single one.</p>
+</div>
+<div id="bayesian-mcmc-estimation" class="section level2">
+<h2>9. Bayesian MCMC estimation</h2>
+<p>The MCMC engine estimates the same variance-covariance models via
+Gibbs sampling, optionally under a Bayesian Lasso (Laplace) prior on the
+profile means (<code>prior_laplace</code>), and runs multiple chains by
+default so convergence can be checked. <code>mcmc_iter</code> is kept
+small below for a fast vignette build; production analyses should use
+several thousand iterations:</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a>fit_mcmc <span class="ot">&lt;-</span> <span class="fu">robust_lpa</span>(x, <span class="at">G =</span> <span class="dv">2</span>, <span class="at">model =</span> <span class="dv">6</span>, <span class="at">engine =</span> <span class="st">&quot;MCMC&quot;</span>,</span>
+<span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a>                        <span class="at">mcmc_iter =</span> <span class="dv">500</span>, <span class="at">n_chains =</span> <span class="dv">4</span>, <span class="at">prior_laplace =</span> <span class="fl">0.1</span>)</span>
+<span id="cb15-3"><a href="#cb15-3" tabindex="-1"></a><span class="fu">summary</span>(fit_mcmc)</span>
+<span id="cb15-4"><a href="#cb15-4" tabindex="-1"></a><span class="co">#&gt; robust_lpa summary -- MCMC | model 6 | G = 2 | N = 250</span></span>
+<span id="cb15-5"><a href="#cb15-5" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb15-6"><a href="#cb15-6" tabindex="-1"></a><span class="co">#&gt; Profile means:</span></span>
+<span id="cb15-7"><a href="#cb15-7" tabindex="-1"></a><span class="co">#&gt;                        P1    P2</span></span>
+<span id="cb15-8"><a href="#cb15-8" tabindex="-1"></a><span class="co">#&gt; Memory               0.56 -0.86</span></span>
+<span id="cb15-9"><a href="#cb15-9" tabindex="-1"></a><span class="co">#&gt; Attention           -0.03  0.04</span></span>
+<span id="cb15-10"><a href="#cb15-10" tabindex="-1"></a><span class="co">#&gt; Executive_Functions  0.06 -0.09</span></span>
+<span id="cb15-11"><a href="#cb15-11" tabindex="-1"></a><span class="co">#&gt; RT_Stroop           -0.63  0.96</span></span>
+<span id="cb15-12"><a href="#cb15-12" tabindex="-1"></a><span class="co">#&gt; RT_TMT              -0.62  0.95</span></span>
+<span id="cb15-13"><a href="#cb15-13" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb15-14"><a href="#cb15-14" tabindex="-1"></a><span class="co">#&gt; Profile sizes:</span></span>
+<span id="cb15-15"><a href="#cb15-15" tabindex="-1"></a><span class="co">#&gt;  Profile   N Proportion</span></span>
+<span id="cb15-16"><a href="#cb15-16" tabindex="-1"></a><span class="co">#&gt;       P1 157      0.605</span></span>
+<span id="cb15-17"><a href="#cb15-17" tabindex="-1"></a><span class="co">#&gt;       P2  93      0.395</span></span>
+<span id="cb15-18"><a href="#cb15-18" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb15-19"><a href="#cb15-19" tabindex="-1"></a><span class="co">#&gt; Fit: LogLik = -1268.0 | AIC = 2618.0 | BIC = 2762.4 | Entropy = 0.845</span></span>
+<span id="cb15-20"><a href="#cb15-20" tabindex="-1"></a><span class="co">#&gt; MCMC: 4 chains x 500 iter | Rhat [1.00, 1.02] | ESS [271, 1061]</span></span></code></pre></div>
+<p>The summary’s <code>Rhat</code>/<code>ESS</code> range comes from the
+classic Gelman-Rubin potential scale reduction statistic and effective
+sample size (<code>fit_mcmc$mcmc_diagnostics</code> has the full
+per-parameter table); values of <code>Rhat</code> near 1 support
+convergence. <code>plot_mcmc_chains()</code> draws overlaid per-chain
+trace plots for visual inspection – pass <code>pars</code> to select a
+subset of the
+<code>&quot;mu[...]&quot;</code>/<code>&quot;sigma[...]&quot;</code>/<code>&quot;pi[...]&quot;</code>
+parameters (see <code>?plot_mcmc_chains</code>) when there are many:</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" tabindex="-1"></a><span class="fu">plot_mcmc_chains</span>(fit_mcmc, <span class="at">pars =</span> <span class="fu">c</span>(<span class="st">&quot;mu[1,1]&quot;</span>, <span class="st">&quot;mu[2,1]&quot;</span>, <span class="st">&quot;pi[1]&quot;</span>))</span></code></pre></div>
+<p><img role="img" aria-label="MCMC trace plots for two profile means and one mixing proportion" src="data:image/png;base64,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" alt="MCMC trace plots for two profile means and one mixing proportion" /></p>
+</div>
+<div id="relating-profiles-to-an-outside-variable-the-bch-method" class="section level2">
+<h2>10. Relating profiles to an outside variable: the BCH method</h2>
+<p>A common follow-up question is whether the fitted profiles differ on
+a variable that was <em>not</em> used to estimate them (a distal
+outcome), while correctly accounting for classification error in the
+profile assignments (naively comparing group means on the hard-assigned
+profiles understates this error and biases the comparison).
+<code>bch_robust()</code> implements the three-step
+Bolck-Croon-Hagenaars (2004) method for this.</p>
+<p>To keep this a genuine “outside variable” rather than one already in
+the measurement model, this section fits a reduced model that leaves
+<code>RT_TMT</code> out, so it can legitimately serve as the
+auxiliary/distal outcome:</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" tabindex="-1"></a>x_reduced <span class="ot">&lt;-</span> <span class="fu">scale</span>(<span class="fu">as.matrix</span>(neuro_data[, <span class="fu">c</span>(<span class="st">&quot;Memory&quot;</span>, <span class="st">&quot;Attention&quot;</span>,</span>
+<span id="cb17-2"><a href="#cb17-2" tabindex="-1"></a>                                             <span class="st">&quot;Executive_Functions&quot;</span>, <span class="st">&quot;RT_Stroop&quot;</span>)]))</span>
+<span id="cb17-3"><a href="#cb17-3" tabindex="-1"></a>fit_reduced <span class="ot">&lt;-</span> <span class="fu">robust_lpa</span>(x_reduced, <span class="at">G =</span> <span class="dv">2</span>, <span class="at">model =</span> <span class="dv">6</span>, <span class="at">n_starts =</span> <span class="dv">5</span>)</span>
+<span id="cb17-4"><a href="#cb17-4" tabindex="-1"></a></span>
+<span id="cb17-5"><a href="#cb17-5" tabindex="-1"></a>bch_res <span class="ot">&lt;-</span> <span class="fu">bch_robust</span>(fit_reduced, neuro_data<span class="sc">$</span>RT_TMT)</span>
+<span id="cb17-6"><a href="#cb17-6" tabindex="-1"></a>bch_res<span class="sc">$</span>Profile_Means</span>
+<span id="cb17-7"><a href="#cb17-7" tabindex="-1"></a><span class="co">#&gt; Profile_1 Profile_2 </span></span>
+<span id="cb17-8"><a href="#cb17-8" tabindex="-1"></a><span class="co">#&gt;  440.2881  683.6163</span></span>
+<span id="cb17-9"><a href="#cb17-9" tabindex="-1"></a>bch_res<span class="sc">$</span>ANOVA_Table</span>
+<span id="cb17-10"><a href="#cb17-10" tabindex="-1"></a><span class="co">#&gt;            Df    Sum_Sq     Mean_Sq  F_value      p_value</span></span>
+<span id="cb17-11"><a href="#cb17-11" tabindex="-1"></a><span class="co">#&gt; Class       1 3318369.2 3318369.164 950.9043 7.886382e-87</span></span>
+<span id="cb17-12"><a href="#cb17-12" tabindex="-1"></a><span class="co">#&gt; Residuals 248  865445.2    3489.698       NA           NA</span></span></code></pre></div>
+<p><code>$ANOVA_Table</code>’s F-test treats the classification error
+matrix as fixed, which can understate uncertainty (Vermunt, 2010).
+<code>correction = &quot;bootstrap&quot;</code> adds a nonparametric approximation
+to the Bakk, Oberski &amp; Vermunt (2014) sandwich correction –
+bootstrap standard errors, confidence intervals, and a Wald test – at
+the cost of refitting the step-1 model <code>n_boot</code> times:</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" tabindex="-1"></a>bch_boot <span class="ot">&lt;-</span> <span class="fu">bch_robust</span>(fit_reduced, neuro_data<span class="sc">$</span>RT_TMT,</span>
+<span id="cb18-2"><a href="#cb18-2" tabindex="-1"></a>                        <span class="at">correction =</span> <span class="st">&quot;bootstrap&quot;</span>, <span class="at">n_boot =</span> <span class="dv">30</span>)</span>
+<span id="cb18-3"><a href="#cb18-3" tabindex="-1"></a>bch_boot<span class="sc">$</span>Bootstrap_Correction</span>
+<span id="cb18-4"><a href="#cb18-4" tabindex="-1"></a><span class="co">#&gt; $n_boot_used</span></span>
+<span id="cb18-5"><a href="#cb18-5" tabindex="-1"></a><span class="co">#&gt; [1] 30</span></span>
+<span id="cb18-6"><a href="#cb18-6" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb18-7"><a href="#cb18-7" tabindex="-1"></a><span class="co">#&gt; $n_boot_failed</span></span>
+<span id="cb18-8"><a href="#cb18-8" tabindex="-1"></a><span class="co">#&gt; [1] 0</span></span>
+<span id="cb18-9"><a href="#cb18-9" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb18-10"><a href="#cb18-10" tabindex="-1"></a><span class="co">#&gt; $SE</span></span>
+<span id="cb18-11"><a href="#cb18-11" tabindex="-1"></a><span class="co">#&gt; Profile_1 Profile_2 </span></span>
+<span id="cb18-12"><a href="#cb18-12" tabindex="-1"></a><span class="co">#&gt;  4.632717 14.944461 </span></span>
+<span id="cb18-13"><a href="#cb18-13" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb18-14"><a href="#cb18-14" tabindex="-1"></a><span class="co">#&gt; $CI_lower</span></span>
+<span id="cb18-15"><a href="#cb18-15" tabindex="-1"></a><span class="co">#&gt; Profile_1 Profile_2 </span></span>
+<span id="cb18-16"><a href="#cb18-16" tabindex="-1"></a><span class="co">#&gt;  432.0065  655.2415 </span></span>
+<span id="cb18-17"><a href="#cb18-17" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb18-18"><a href="#cb18-18" tabindex="-1"></a><span class="co">#&gt; $CI_upper</span></span>
+<span id="cb18-19"><a href="#cb18-19" tabindex="-1"></a><span class="co">#&gt; Profile_1 Profile_2 </span></span>
+<span id="cb18-20"><a href="#cb18-20" tabindex="-1"></a><span class="co">#&gt;  450.1307  706.6348 </span></span>
+<span id="cb18-21"><a href="#cb18-21" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb18-22"><a href="#cb18-22" tabindex="-1"></a><span class="co">#&gt; $Wald_stat</span></span>
+<span id="cb18-23"><a href="#cb18-23" tabindex="-1"></a><span class="co">#&gt; [1] 300.201</span></span>
+<span id="cb18-24"><a href="#cb18-24" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb18-25"><a href="#cb18-25" tabindex="-1"></a><span class="co">#&gt; $Wald_df</span></span>
+<span id="cb18-26"><a href="#cb18-26" tabindex="-1"></a><span class="co">#&gt; [1] 1</span></span>
+<span id="cb18-27"><a href="#cb18-27" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb18-28"><a href="#cb18-28" tabindex="-1"></a><span class="co">#&gt; $Wald_p_value</span></span>
+<span id="cb18-29"><a href="#cb18-29" tabindex="-1"></a><span class="co">#&gt; [1] 2.978374e-67</span></span></code></pre></div>
+<p>(As with the BLRT, <code>n_boot</code> is kept small here for a fast
+vignette build; use several hundred for publication-grade
+inference.)</p>
+</div>
+<div id="parallel-computing" class="section level2">
+<h2>11. Parallel computing</h2>
+<p>Every bootstrap- or restart-based procedure in this package accepts a
+<code>cores</code> argument: EM random restarts or MCMC chains within a
+single <code>robust_lpa()</code> call, the model/profile grid (and
+cross-validation folds) in <code>estimate_profiles_robust()</code>,
+bootstrap replicates in <code>blrt_robust()</code>, and bootstrap
+correction replicates in <code>bch_robust()</code>. These are not run in
+this vignette (CRAN’s check machines cap how many cores a package may
+use during checks), but the calls are otherwise identical to the
+sequential versions above:</p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" tabindex="-1"></a>grid_parallel <span class="ot">&lt;-</span> <span class="fu">estimate_profiles_robust</span>(x, <span class="at">n_profiles =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">3</span>, <span class="at">models =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">6</span>,</span>
+<span id="cb19-2"><a href="#cb19-2" tabindex="-1"></a>                                           <span class="at">n_starts =</span> <span class="dv">5</span>, <span class="at">cores =</span> <span class="dv">4</span>)</span>
+<span id="cb19-3"><a href="#cb19-3" tabindex="-1"></a>fit_mcmc_parallel <span class="ot">&lt;-</span> <span class="fu">robust_lpa</span>(x, <span class="at">G =</span> <span class="dv">2</span>, <span class="at">model =</span> <span class="dv">6</span>, <span class="at">engine =</span> <span class="st">&quot;MCMC&quot;</span>,</span>
+<span id="cb19-4"><a href="#cb19-4" tabindex="-1"></a>                                 <span class="at">mcmc_iter =</span> <span class="dv">2000</span>, <span class="at">n_chains =</span> <span class="dv">4</span>, <span class="at">cores =</span> <span class="dv">4</span>)</span></code></pre></div>
+<p>If you also parallelize an outer loop
+(e.g. <code>blrt_robust(cores = )</code>) around calls that themselves
+use <code>cores</code>, keep the product of the two values at or below
+your machine’s core count to avoid oversubscription.</p>
+</div>
+<div id="summary" class="section level2">
+<h2>12. Summary</h2>
+<table>
+<colgroup>
+<col width="50%" />
+<col width="50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">Task</th>
+<th align="left">Function</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Fit one model</td>
+<td align="left"><code>robust_lpa()</code></td>
+</tr>
+<tr class="even">
+<td align="left">Compare models/profile counts</td>
+<td align="left"><code>estimate_profiles_robust()</code>,
+<code>plot_robust_lpa()</code></td>
+</tr>
+<tr class="odd">
+<td align="left">Test the number of profiles</td>
+<td align="left"><code>blrt_robust()</code></td>
+</tr>
+<tr class="even">
+<td align="left">Relate profiles to an outside variable</td>
+<td align="left"><code>bch_robust()</code></td>
+</tr>
+<tr class="odd">
+<td align="left">Inspect MCMC convergence</td>
+<td align="left"><code>plot_mcmc_chains()</code>,
+<code>fit$mcmc_diagnostics</code></td>
+</tr>
+<tr class="even">
+<td align="left">Quick robust centroid (no mixture model)</td>
+<td align="left"><code>robust_mean()</code></td>
+</tr>
+</tbody>
+</table>
+<p>See the function help pages (<code>?robust_lpa</code>,
+<code>?estimate_profiles_robust</code>, <code>?blrt_robust</code>,
+<code>?bch_robust</code>, <code>?plot_mcmc_chains</code>,
+<code>?neuro_data</code>) for full argument documentation, and
+<code>NEWS.md</code> for what changed in this release.</p>
+</div>
+<div id="references" class="section level2">
+<h2>References</h2>
+<p>Bolck, A., Croon, M., &amp; Hagenaars, J. (2004). Estimating latent
+structure models with categorical variables: One-step versus three-step
+estimators. <em>Political Analysis</em>, 12(1), 3-27.</p>
+<p>Bakk, Z., Oberski, D. L., &amp; Vermunt, J. K. (2014). Relating
+latent class assignments to external variables: Standard errors for
+correct inference. <em>Political Analysis</em>, 22(4), 520-540.</p>
+<p>Garcia-Escudero, L. A., Gordaliza, A., Matran, C., &amp; Mayo-Iscar,
+A. (2010). A review of robust clustering methods. <em>Advances in Data
+Analysis and Classification</em>, 4(2-3), 89-109.</p>
+<p>Nylund, K. L., Asparouhov, T., &amp; Muthen, B. O. (2007). Deciding
+on the number of classes in latent class analysis and growth mixture
+modeling: A Monte Carlo simulation study. <em>Structural Equation
+Modeling</em>, 14(4), 535-569.</p>
+<p>Vermunt, J. K. (2010). Latent class modeling with covariates: Two
+improved three-step approaches. <em>Political Analysis</em>, 18(4),
+450-469.</p>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

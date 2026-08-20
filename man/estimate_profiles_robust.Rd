@@ -2,35 +2,70 @@
 % Please edit documentation in R/estimate_profiles_robust.R
 \name{estimate_profiles_robust}
 \alias{estimate_profiles_robust}
-\title{Estimate Robust Latent Profile Models}
+\title{Estimate Robust Latent Profile Models Across Profiles and Models}
 \usage{
 estimate_profiles_robust(
   data,
   n_profiles = 1:3,
   models = c(1, 2, 3, 4, 5, 6),
-  n_starts = 5
+  engine = "EM",
+  cores = 1,
+  n_starts = 5,
+  lambda = 0,
+  tune_lasso = FALSE,
+  k_folds = 5,
+  lambda_grid = c(0.01, 0.05, 0.1, 0.2),
+  ...
 )
 }
 \arguments{
 \item{data}{A matrix or data.frame.}
 
-\item{n_profiles}{A vector of integers specifying the number of profiles to run (e.g., 1:3).}
+\item{n_profiles}{A vector of integers specifying the number of profiles to run.}
 
-\item{models}{A vector of LPA models to run (e.g., c(1, 2, 3, 4, 5, 6)). Default is c(1, 2, 3, 4, 5, 6).}
+\item{models}{A vector of LPA models to run.}
+
+\item{engine}{String. Either "EM" or "MCMC".}
+
+\item{cores}{Integer. Number of CPU cores to use for parallel processing
+\emph{across} the requested \code{n_profiles} x \code{models} grid (and
+across \code{k_folds} within \code{tune_lasso}). This is a different
+axis of parallelism from \code{\link{robust_lpa}}'s own \code{cores}
+argument (which parallelizes across EM restarts / MCMC chains
+\emph{within} a single model fit); if you also pass \code{cores} through
+\code{...} to \code{\link{robust_lpa}}, keep the product of the two
+roughly at or below your machine's core count to avoid oversubscription.}
 
 \item{n_starts}{Number of initializations per model.}
+
+\item{lambda}{Fixed penalty for LASSO.}
+
+\item{tune_lasso}{Logical. If TRUE, finds optimal lambda via cross-validation.}
+
+\item{k_folds}{Number of folds for cross-validation.}
+
+\item{lambda_grid}{Vector of penalty values to test.}
+
+\item{...}{Additional arguments passed on to every internal
+\code{\link{robust_lpa}} call (e.g. \code{max_iter}, \code{tol},
+\code{robust}, \code{alpha}, \code{cores}, and, when
+\code{engine = "MCMC"}, \code{mcmc_iter}/\code{n_chains}/\code{prior_laplace})
+-- for instance, pass \code{robust = FALSE} here to compare
+model/profile combinations using classical (non-robust) estimation
+throughout, for either engine.}
 }
 \value{
 A list containing the fit comparison table and the estimated models.
 }
 \description{
-This function provides a user-friendly interface to fit multiple robust LPA
-models simultaneously across different numbers of profiles and model structures,
-returning a comprehensive fit summary table.
+Estimate Robust Latent Profile Models Across Profiles and Models
 }
 \examples{
 # Quick evaluation of multiple profiles
-data(iris)
-res <- estimate_profiles_robust(iris[1:30, 1:2], n_profiles = 1:2, models = 1, n_starts = 1)
+data(neuro_data)
+x <- scale(as.matrix(neuro_data[, c("Memory", "RT_Stroop")]))
+res <- suppressWarnings(estimate_profiles_robust(x, n_profiles = 1:2, models = 1, n_starts = 3))
 res$fit_table
+# Each element of `res$models` is a `robust_lpa` object with print/summary methods
+summary(res$models[[1]])
 }

@@ -1,0 +1,374 @@
+---
+title: "Getting Started with RobustLPA"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting Started with RobustLPA}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 6,
+  fig.height = 4.2,
+  warning = FALSE,
+  message = FALSE
+)
+```
+
+```{r setup}
+library(RobustLPA)
+```
+
+## 1. Introduction
+
+Latent Profile Analysis (LPA) groups observations into a small number of
+unobserved ("latent") profiles based on a set of continuous indicator
+variables, by fitting a finite mixture of multivariate normal distributions.
+It is widely used in psychology, education, and the health sciences to
+identify subgroups of people who share a similar pattern of scores --
+without specifying the groups in advance.
+
+Standard (maximum-likelihood) LPA estimation is not robust: a handful of
+extreme or mismeasured observations can distort the estimated profile means
+and covariances, sometimes badly enough to change which observations end up
+in which profile (Garcia-Escudero et al., 2010). **RobustLPA** provides:
+
+* Two estimation engines: classical Expectation-Maximization (**EM**) and
+  Bayesian **MCMC** (Gibbs sampling), both with an optional Huber-type
+  robust mode (`robust = TRUE`, the default) that down-weights outlying
+  observations, or a classical (non-robust) mode (`robust = FALSE`) for
+  comparison.
+* Six variance-covariance parameterizations (`model = 1:6`), from a single
+  shared diagonal covariance to a fully unconstrained covariance per
+  profile, so model complexity can be chosen to fit the data rather than
+  assumed.
+* LASSO-type regularization of the profile means, with cross-validated
+  penalty selection.
+* Native handling of missing data via Full Information Maximum Likelihood
+  (FIML) -- no need to drop or impute incomplete rows.
+* Tools for the two questions every LPA analysis has to answer: *how many
+  profiles?* (`estimate_profiles_robust()`, the bootstrapped likelihood
+  ratio test `blrt_robust()`) and *how do profiles relate to variables
+  outside the model?* (`bch_robust()`, implementing the
+  Bolck-Croon-Hagenaars three-step method).
+* Parallel computing (`cores = `) throughout, for the EM restarts / MCMC
+  chains of a single fit, for grid searches over models and profile counts,
+  and for the bootstrap procedures.
+
+This vignette walks through a complete analysis on the dataset bundled with
+the package, `neuro_data`. Progress messages and the log-likelihood-decrease
+warnings that Huber-weighted robust estimation can occasionally emit
+(expected behavior, explained in the "Robust estimation" section of
+`?robust_lpa`) are suppressed below to keep the output readable; they do not
+affect any of the fitted values shown.
+
+## 2. The example dataset
+
+`neuro_data` contains simulated neuropsychological test scores and reaction
+times for 250 people belonging to two true, known groups: "Healthy"
+(n = 150) and "Pathological" (n = 100). The group label (`True_Profile`) is
+included only so that recovered profiles can be checked against ground
+truth -- it is never used for estimation, since LPA is unsupervised.
+
+```{r}
+data(neuro_data)
+str(neuro_data)
+table(neuro_data$True_Profile)
+```
+
+Two of the five continuous variables (`Attention`, `Executive_Functions`)
+are, by design, identically distributed in both groups: they carry no group
+signal and act as "noise" variables. `Memory`, `RT_Stroop`, and `RT_TMT`
+differ between groups, and the two reaction-time variables additionally
+differ in variance and in how strongly they correlate with each other --
+a genuine difference in covariance *structure*, not just location, between
+the two groups (see `?neuro_data`). A subset of the Pathological group also
+carries extra, variable-magnitude outlying values on the two reaction-time
+variables, simulating measurement contamination.
+
+As with any LPA analysis, we standardize the indicators first, since
+several parts of the package (LASSO shrinkage in particular) are only
+meaningful on a common scale:
+
+```{r}
+vars <- c("Memory", "Attention", "Executive_Functions", "RT_Stroop", "RT_TMT")
+x <- scale(as.matrix(neuro_data[, vars]))
+head(x)
+```
+
+## 3. Choosing a variance-covariance model
+
+`robust_lpa()`'s `model` argument selects how the profiles' covariance
+matrices are constrained, from most to least parsimonious:
+
+| `model` | Variances across profiles | Covariances across profiles |
+|:---:|:---|:---|
+| 1 | Equal (shared) | Zero (diagonal), shared |
+| 2 | Varying | Zero (diagonal), own |
+| 3 | Equal (shared) | Equal (shared), full |
+| 4 | Varying | Shared *correlation structure*, own variances |
+| 5 | Equal (shared) | Own *correlation structure*, shared variances |
+| 6 | Varying | Varying (fully unconstrained per profile) |
+
+More parsimonious models (1-2) are more stable with smaller samples but can
+under-fit real covariance structure; less parsimonious models (especially
+6) can fit better but need more data and are more prone to numerically
+unstable, near-singular covariance estimates for small or overlapping
+profiles -- `robust_lpa()` guards against this automatically and will warn
+if a fitted profile ends up implausibly small (see `?robust_lpa`). Section
+7 below shows how to let BIC choose among all six objectively, rather than
+assuming one.
+
+## 4. Fitting a single model with the EM engine
+
+```{r}
+fit_em <- robust_lpa(x, G = 2, model = 6, n_starts = 5)
+fit_em
+```
+
+`summary()` adds per-profile means and sizes:
+
+```{r}
+summary(fit_em)
+```
+
+Since `neuro_data` includes the ground-truth group label, we can check how
+well the fitted profiles recover it:
+
+```{r}
+table(True_Profile = neuro_data$True_Profile, Assigned = fit_em$assignments)
+```
+
+### Robust vs. classical estimation
+
+`robust = TRUE` (the default) down-weights each observation's contribution
+to its assigned profile's mean/covariance once its Mahalanobis distance
+exceeds a chi-squared cutoff (controlled by `alpha`). Comparing against
+`robust = FALSE` shows the effect of the contamination built into
+`RT_Stroop`/`RT_TMT`:
+
+```{r}
+fit_classical <- robust_lpa(x, G = 2, model = 6, n_starts = 5, robust = FALSE)
+rbind(
+  robust    = sapply(fit_em$means, `[`, "RT_Stroop"),
+  classical = sapply(fit_classical$means, `[`, "RT_Stroop")
+)
+```
+
+## 5. LASSO regularization
+
+For higher-dimensional indicator sets, `lambda` applies LASSO-type
+soft-thresholding shrinkage to the profile means (meaningful only on
+standardized data, as used throughout this vignette):
+
+```{r}
+fit_lasso <- robust_lpa(x, G = 2, model = 6, n_starts = 3, lambda = 0.15)
+summary(fit_lasso)
+```
+
+Rather than fixing `lambda` by hand, `estimate_profiles_robust(tune_lasso =
+TRUE)` selects it by k-fold cross-validation (see Section 7).
+
+## 6. Missing data (FIML)
+
+`robust_lpa()` handles missing values natively via Full Information Maximum
+Likelihood -- no listwise deletion or imputation needed -- for both engines
+and every variance-covariance model:
+
+```{r}
+x_na <- x
+set.seed(1)
+na_idx <- cbind(
+  sample(nrow(x_na), 15),
+  sample(ncol(x_na), 15, replace = TRUE)
+)
+x_na[na_idx] <- NA
+mean(is.na(x_na))
+
+fit_fiml <- robust_lpa(x_na, G = 2, model = 6, n_starts = 5)
+summary(fit_fiml)
+```
+
+## 7. Choosing the number of profiles and the covariance model
+
+`estimate_profiles_robust()` fits every combination of `n_profiles` and
+`models` and collects their fit indices in one table, so models can be
+compared by AIC/BIC/SABIC rather than assumed in advance:
+
+```{r}
+grid <- estimate_profiles_robust(x, n_profiles = 1:3, models = 1:6, n_starts = 5)
+grid$fit_table[order(grid$fit_table$BIC), ]
+```
+
+`neuro_data`'s genuine group-level covariance difference (Section 2) was
+specifically calibrated so that the fully unconstrained model (`model =
+6`) at two profiles fits measurably better than more parsimonious
+alternatives, despite its larger parameter penalty -- if you reproduce this
+table, `Model = 6, Profiles = 2` should be at or very near the top by BIC.
+Each element of `grid$models` is a fitted `robust_lpa` object:
+
+```{r}
+summary(grid$models[["model_6_profiles_2"]])
+```
+
+`plot_robust_lpa()` accepts either a single fit or a full grid (in which
+case it plots the lowest-BIC model automatically):
+
+```{r, fig.alt = "Profile plot of the best-fitting model"}
+plot_robust_lpa(grid, title = "Best-fitting model (lowest BIC)")
+```
+
+Cross-validated LASSO tuning uses the same grid interface:
+
+```{r}
+grid_lasso <- estimate_profiles_robust(
+  x, n_profiles = 2, models = 6, n_starts = 3,
+  tune_lasso = TRUE, k_folds = 5, lambda_grid = c(0, 0.05, 0.1, 0.2)
+)
+grid_lasso$fit_table[, c("Model", "Profiles", "BIC", "Lambda")]
+```
+
+## 8. Confirming the number of profiles: the bootstrapped likelihood ratio test
+
+BIC alone does not come with a significance test for "is `G` profiles
+actually better than `G - 1`?". `blrt_robust()` answers this via parametric
+bootstrap (Nylund, Asparouhov & Muthen, 2007): it simulates data under the
+simpler (`G - 1`)-profile model, refits both models to each simulated
+dataset, and builds a reference distribution for the observed likelihood
+ratio. `n_samples` is kept small below for a fast vignette build; for
+publication-grade inference use at least 200-500 (and consider `cores > 1`,
+see Section 11):
+
+```{r}
+blrt_res <- blrt_robust(x, G = 2, model = 6, n_samples = 20, n_starts = 3)
+blrt_res
+```
+
+A small `p_value` supports keeping the second profile over collapsing to a
+single one.
+
+## 9. Bayesian MCMC estimation
+
+The MCMC engine estimates the same variance-covariance models via Gibbs
+sampling, optionally under a Bayesian Lasso (Laplace) prior on the profile
+means (`prior_laplace`), and runs multiple chains by default so convergence
+can be checked. `mcmc_iter` is kept small below for a fast vignette build;
+production analyses should use several thousand iterations:
+
+```{r}
+fit_mcmc <- robust_lpa(x, G = 2, model = 6, engine = "MCMC",
+                        mcmc_iter = 500, n_chains = 4, prior_laplace = 0.1)
+summary(fit_mcmc)
+```
+
+The summary's `Rhat`/`ESS` range comes from the classic Gelman-Rubin
+potential scale reduction statistic and effective sample size
+(`fit_mcmc$mcmc_diagnostics` has the full per-parameter table); values of
+`Rhat` near 1 support convergence. `plot_mcmc_chains()` draws overlaid
+per-chain trace plots for visual inspection -- pass `pars` to select a
+subset of the `"mu[...]"`/`"sigma[...]"`/`"pi[...]"` parameters (see
+`?plot_mcmc_chains`) when there are many:
+
+```{r, fig.alt = "MCMC trace plots for two profile means and one mixing proportion"}
+plot_mcmc_chains(fit_mcmc, pars = c("mu[1,1]", "mu[2,1]", "pi[1]"))
+```
+
+## 10. Relating profiles to an outside variable: the BCH method
+
+A common follow-up question is whether the fitted profiles differ on a
+variable that was *not* used to estimate them (a distal outcome), while
+correctly accounting for classification error in the profile assignments
+(naively comparing group means on the hard-assigned profiles understates
+this error and biases the comparison). `bch_robust()` implements the
+three-step Bolck-Croon-Hagenaars (2004) method for this.
+
+To keep this a genuine "outside variable" rather than one already in the
+measurement model, this section fits a reduced model that leaves `RT_TMT`
+out, so it can legitimately serve as the auxiliary/distal outcome:
+
+```{r}
+x_reduced <- scale(as.matrix(neuro_data[, c("Memory", "Attention",
+                                             "Executive_Functions", "RT_Stroop")]))
+fit_reduced <- robust_lpa(x_reduced, G = 2, model = 6, n_starts = 5)
+
+bch_res <- bch_robust(fit_reduced, neuro_data$RT_TMT)
+bch_res$Profile_Means
+bch_res$ANOVA_Table
+```
+
+`$ANOVA_Table`'s F-test treats the classification error matrix as fixed,
+which can understate uncertainty (Vermunt, 2010). `correction = "bootstrap"`
+adds a nonparametric approximation to the Bakk, Oberski & Vermunt (2014)
+sandwich correction -- bootstrap standard errors, confidence intervals, and
+a Wald test -- at the cost of refitting the step-1 model `n_boot` times:
+
+```{r}
+bch_boot <- bch_robust(fit_reduced, neuro_data$RT_TMT,
+                        correction = "bootstrap", n_boot = 30)
+bch_boot$Bootstrap_Correction
+```
+
+(As with the BLRT, `n_boot` is kept small here for a fast vignette build;
+use several hundred for publication-grade inference.)
+
+## 11. Parallel computing
+
+Every bootstrap- or restart-based procedure in this package accepts a
+`cores` argument: EM random restarts or MCMC chains within a single
+`robust_lpa()` call, the model/profile grid (and cross-validation folds) in
+`estimate_profiles_robust()`, bootstrap replicates in `blrt_robust()`, and
+bootstrap correction replicates in `bch_robust()`. These are not run in
+this vignette (CRAN's check machines cap how many cores a package may use
+during checks), but the calls are otherwise identical to the sequential
+versions above:
+
+```{r, eval = FALSE}
+grid_parallel <- estimate_profiles_robust(x, n_profiles = 1:3, models = 1:6,
+                                           n_starts = 5, cores = 4)
+fit_mcmc_parallel <- robust_lpa(x, G = 2, model = 6, engine = "MCMC",
+                                 mcmc_iter = 2000, n_chains = 4, cores = 4)
+```
+
+If you also parallelize an outer loop (e.g. `blrt_robust(cores = )`) around
+calls that themselves use `cores`, keep the product of the two values at or
+below your machine's core count to avoid oversubscription.
+
+## 12. Summary
+
+| Task | Function |
+|:---|:---|
+| Fit one model | `robust_lpa()` |
+| Compare models/profile counts | `estimate_profiles_robust()`, `plot_robust_lpa()` |
+| Test the number of profiles | `blrt_robust()` |
+| Relate profiles to an outside variable | `bch_robust()` |
+| Inspect MCMC convergence | `plot_mcmc_chains()`, `fit$mcmc_diagnostics` |
+| Quick robust centroid (no mixture model) | `robust_mean()` |
+
+See the function help pages (`?robust_lpa`, `?estimate_profiles_robust`,
+`?blrt_robust`, `?bch_robust`, `?plot_mcmc_chains`, `?neuro_data`) for full
+argument documentation, and `NEWS.md` for what changed in this release.
+
+## References
+
+Bolck, A., Croon, M., & Hagenaars, J. (2004). Estimating latent structure
+models with categorical variables: One-step versus three-step estimators.
+*Political Analysis*, 12(1), 3-27.
+
+Bakk, Z., Oberski, D. L., & Vermunt, J. K. (2014). Relating latent class
+assignments to external variables: Standard errors for correct inference.
+*Political Analysis*, 22(4), 520-540.
+
+Garcia-Escudero, L. A., Gordaliza, A., Matran, C., & Mayo-Iscar, A. (2010).
+A review of robust clustering methods. *Advances in Data Analysis and
+Classification*, 4(2-3), 89-109.
+
+Nylund, K. L., Asparouhov, T., & Muthen, B. O. (2007). Deciding on the
+number of classes in latent class analysis and growth mixture modeling: A
+Monte Carlo simulation study. *Structural Equation Modeling*, 14(4),
+535-569.
+
+Vermunt, J. K. (2010). Latent class modeling with covariates: Two improved
+three-step approaches. *Political Analysis*, 18(4), 450-469.

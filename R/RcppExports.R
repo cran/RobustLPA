@@ -13,8 +13,8 @@ huber_weights_cpp <- function(squared_dists, chi_sq_cutoff) {
     .Call(`_RobustLPA_huber_weights_cpp`, squared_dists, chi_sq_cutoff)
 }
 
-robust_update_cpp <- function(X, z, w) {
-    .Call(`_RobustLPA_robust_update_cpp`, X, z, w)
+robust_update_cpp <- function(X, z, w, lambda) {
+    .Call(`_RobustLPA_robust_update_cpp`, X, z, w, lambda)
 }
 
 dmvnorm_cpp <- function(X, mu, Sigma) {
@@ -33,7 +33,11 @@ huber_weights_fiml_cpp <- function(X, squared_dists, alpha = 0.05) {
     .Call(`_RobustLPA_huber_weights_fiml_cpp`, X, squared_dists, alpha)
 }
 
-robust_update_fiml_cpp <- function(X, z, w) {
-    .Call(`_RobustLPA_robust_update_fiml_cpp`, X, z, w)
+robust_update_fiml_cpp <- function(X, z, w, lambda) {
+    .Call(`_RobustLPA_robust_update_fiml_cpp`, X, z, w, lambda)
+}
+
+robust_mcmc_cpp <- function(X, G, model, mcmc_iter, prior_laplace, robust = TRUE, alpha = 0.05) {
+    .Call(`_RobustLPA_robust_mcmc_cpp`, X, G, model, mcmc_iter, prior_laplace, robust, alpha)
 }
 

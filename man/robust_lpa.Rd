@@ -4,33 +4,244 @@
 \alias{robust_lpa}
 \title{Fit a Single Robust Latent Profile Analysis Model}
 \usage{
-robust_lpa(data, G, model = 6, max_iter = 100, tol = 1e-06, n_starts = 5)
+robust_lpa(
+  data,
+  G,
+  model = 6,
+  engine = "EM",
+  max_iter = 100,
+  tol = 1e-06,
+  n_starts = 5,
+  lambda = 0,
+  mcmc_iter = 2000,
+  prior_laplace = 0.1,
+  robust = TRUE,
+  alpha = 0.05,
+  n_chains = 4,
+  cores = 1
+)
 }
 \arguments{
-\item{data}{A matrix or data.frame of observations.}
+\item{data}{A matrix or data.frame of observations (numeric columns only;
+\code{NA} is allowed and triggers the FIML code path).}
 
-\item{G}{The number of latent profiles to extract.}
+\item{G}{The number of latent profiles to extract (a single positive integer).}
 
-\item{model}{An integer (1 to 6) specifying the model parameterization.}
+\item{model}{An integer (1 to 6) specifying the variance-covariance
+parameterization, following the same numbering convention as tidyLPA /
+mclust:
+\describe{
+  \item{1}{Equal variances across profiles, covariances fixed to 0 (diagonal,
+    shared across profiles -- each variable keeps its own variance level,
+    constrained to be the same in every profile; this is \emph{not} a
+    single isotropic/spherical variance shared across variables too,
+    despite that being a common shorthand for this model elsewhere).}
+  \item{2}{Varying variances across profiles, covariances fixed to 0 (diagonal, profile-specific).}
+  \item{3}{Equal variances and equal covariances across profiles (one shared full covariance matrix).}
+  \item{4}{Varying variances, equal covariance \emph{structure} (shared correlation matrix, profile-specific variances).}
+  \item{5}{Equal variances, varying covariances (shared variances, profile-specific correlation matrices).}
+  \item{6}{Fully unconstrained: each profile has its own variances and covariances (default).}
+}}
 
-\item{max_iter}{Maximum number of EM iterations.}
+\item{engine}{String. Either \code{"EM"} (default) or \code{"MCMC"}.}
 
-\item{tol}{Tolerance for convergence.}
+\item{max_iter}{Maximum number of EM iterations. Ignored when \code{engine = "MCMC"}.}
 
-\item{n_starts}{Number of random initializations.}
+\item{tol}{Tolerance for EM convergence (on the observed-data log-likelihood). Ignored when \code{engine = "MCMC"}.}
+
+\item{n_starts}{Number of random EM initializations; the fit with the
+highest log-likelihood across starts is returned. Ignored when \code{engine = "MCMC"}.}
+
+\item{lambda}{Non-negative soft-thresholding (LASSO-type) penalty applied
+to the profile means, via direct per-coordinate soft-thresholding of the
+(Huber- and posterior-probability-weighted) mean at every M-step -- see
+\code{\link{robust_m_step}}/\code{robust_update_cpp()}. This shrinks each
+mean component toward zero on the scale of the (as supplied) \code{data};
+it is only statistically meaningful as a sparsity-inducing penalty on
+centered/scaled data (so that zero corresponds to "no departure from the
+grand mean"), and, because the threshold is a flat amount rather than one
+rescaled by each profile's variance/sample size, it is a computationally
+convenient approximation to (not an exact coordinate-wise solution of)
+the corresponding L1-penalized weighted log-likelihood except when
+profile covariances are close to the identity -- as they will be on
+standardized data with roughly independent variables. Standardize
+\code{data} first if you intend to use \code{lambda > 0}; a
+\code{warning()} is raised if \code{data} does not look centered/scaled.
+Default \code{0} (no shrinkage).}
+
+\item{mcmc_iter}{Number of iterations per MCMC chain (see \code{n_chains}).
+The first half of each chain is discarded as burn-in before computing
+posterior summaries and convergence diagnostics. Ignored when \code{engine = "EM"}.}
+
+\item{prior_laplace}{Positive numeric, the Laplace (Bayesian Lasso)
+shrinkage/rate hyperparameter for the profile means under the MCMC
+engine (denoted \eqn{\lambda} in Park & Casella, 2008; \emph{not} a
+dispersion "scale" in the usual sense -- \strong{larger} values induce
+\strong{more} shrinkage of the means toward zero, analogous to a bigger
+\code{lambda} in the EM engine). Ignored when \code{engine = "EM"}.}
+
+\item{robust}{Logical. If \code{TRUE} (default), robust (outlier
+down-weighted) estimation is used regardless of \code{engine}: Huber
+weights, computed from per-observation squared Mahalanobis distances,
+down-weight outliers when accumulating the sufficient statistics used
+for each profile's mean/covariance -- in the EM engine's M-step (see
+\code{\link{robust_m_step}}) and, in the same spirit, in the MCMC
+engine's Gibbs updates (see "Robust estimation" below). If \code{FALSE},
+this down-weighting is skipped in both engines, which reduce to
+classical (non-robust) maximum-likelihood / Bayesian estimation for a
+Gaussian mixture -- useful if you want to fit a standard LPA/GMM with
+the same interface, missing-data handling, and model parameterizations
+as the rest of this package.}
+
+\item{alpha}{Significance level for the Huber down-weighting threshold
+(observations with squared Mahalanobis distance beyond the
+\code{1 - alpha} chi-squared quantile are down-weighted). Smaller values
+down-weight fewer, more extreme points; larger values down-weight more
+aggressively. Default \code{0.05}. Ignored when \code{robust = FALSE}.}
+
+\item{n_chains}{Number of independent MCMC chains to run (default
+\code{4}). Running multiple chains from independent starting values is
+what makes the Gelman-Rubin \eqn{\hat{R}} diagnostic possible (it is a
+between- vs. within-chain comparison and is undefined for a single
+chain). Posterior summaries (\code{means}, \code{covariances},
+\code{proportions}) pool the post-burn-in draws of all chains together.
+Ignored when \code{engine = "EM"}.}
+
+\item{cores}{Integer, number of CPU cores to use for parallel estimation
+\emph{within this single} \code{robust_lpa()} call (default \code{1},
+sequential). For \code{engine = "EM"}, parallelizes across the
+\code{n_starts} random restarts. For \code{engine = "MCMC"},
+parallelizes across the \code{n_chains} chains. Uses
+\code{parallel::mclapply()} (forking) on Unix-alikes, and a
+\code{parallel::makeCluster()} PSOCK cluster -- with independent
+per-worker RNG streams via \code{parallel::clusterSetRNGStream()} -- on
+Windows; falls back to sequential execution with a \code{warning()} if
+the \pkg{parallel} package is unavailable. This is a different axis of
+parallelism from, and should not usually be combined with (nested
+parallelism can oversubscribe your CPU), the \code{cores} argument of
+\code{\link{estimate_profiles_robust}}, which instead parallelizes
+across \code{G}/\code{model} combinations.}
 }
 \value{
-A list containing parameters, fit indices, and assignments.
+A list with S3 class \code{"robust_lpa"} (see
+  \code{\link{print.robust_lpa}} and \code{\link{summary.robust_lpa}} for
+  concise and detailed views of the fit) containing:
+  \describe{
+    \item{engine}{The estimation engine used.}
+    \item{means}{A list of length \code{G} with the estimated profile means.}
+    \item{covariances}{A list of length \code{G} with the estimated profile covariance matrices.}
+    \item{proportions}{Numeric vector of length \code{G} with the estimated mixing proportions.}
+    \item{probabilities}{An \code{n x G} matrix of posterior profile-membership probabilities.}
+    \item{fit}{A one-row data.frame with \code{Model}, \code{Profiles}, \code{LogLik}, \code{Parameters}, \code{AIC}, \code{BIC}, \code{SABIC}, \code{Entropy}, \code{Min_Size}, and \code{Max_Size}.}
+    \item{assignments}{Integer vector of length \code{n} with the most likely profile for each observation.}
+    \item{mcmc_draws}{(MCMC engine only) a list with \code{chains} (the raw per-chain draws, as consumed by \code{\link{plot_mcmc_chains}}), \code{n_chains}, \code{mcmc_iter}, and \code{burnin}.}
+    \item{mcmc_diagnostics}{(MCMC engine only) a data.frame with one row per scalar parameter (\code{Parameter}, \code{Rhat}, \code{ESS}); see "MCMC convergence diagnostics" below. \code{NULL} if the \pkg{coda} package is unavailable or there are too few post-burn-in iterations.}
+    \item{data}{The numeric matrix actually fit (\code{data} coerced via \code{as.matrix()}).}
+    \item{call_args}{A named list of every argument controlling this fit (\code{G}, \code{model}, \code{engine}, ...), for internal reuse -- e.g. \code{\link{bch_robust}}'s \code{correction = "bootstrap"} refits this exact specification on resampled data via \code{do.call(robust_lpa, modifyList(call_args, list(data = new_data)))}.}
+  }
 }
 \description{
-This function estimates a single robust Latent Profile Analysis (LPA) model
-for a specified number of profiles and model structure. It automatically
-handles missing data via robust FIML if present.
+Estimates a Latent Profile Analysis (Gaussian mixture) model that is
+robust to multivariate outliers (via Huber down-weighting) and to missing
+data (via a Full Information Maximum Likelihood, FIML, available-case
+treatment), using either an EM or an MCMC (Bayesian Lasso) engine. Both
+engines share the same \code{robust}/\code{alpha} Huber down-weighting
+mechanism, on by default (see the "Robust estimation" section below). The
+MCMC engine runs \code{n_chains} independent chains (4 by default) and
+reports classic multi-chain convergence diagnostics (Gelman-Rubin
+\eqn{\hat{R}} and effective sample size) in \code{$mcmc_diagnostics}. Set
+\code{cores > 1} to run the EM engine's random restarts, or the MCMC
+engine's chains, in parallel.
 }
+\section{Robust estimation}{
+
+Both engines share the same outlier-down-weighting idea, adapted to how
+each one accumulates information:
+\itemize{
+  \item \strong{EM}: at every M-step, each profile's mean/covariance is
+    recomputed from Huber-down-weighted, posterior-probability-weighted
+    observations (\code{\link{robust_m_step}}).
+  \item \strong{MCMC}: at every Gibbs sweep, after observations are
+    allocated to profiles, a Huber weight is computed for each observation
+    from its squared Mahalanobis distance to its \emph{currently assigned}
+    profile's previous-sweep mean/covariance (the same \code{alpha}
+    chi-squared cutoff used by the EM engine). These weights down-weight
+    the sufficient statistics that drive that sweep's mean/covariance
+    updates, so an outlying observation contributes a smaller effective
+    sample size to its profile's posterior. As in the EM engine, the
+    mixing-proportion update is unaffected (it uses the raw allocation
+    counts) and the allocation step itself is not down-weighted. Setting
+    \code{robust = FALSE} recovers a standard (non-robust) Gibbs sampler
+    for the same Bayesian-Lasso Gaussian mixture. A row of \code{data}
+    with no observed variables at all is still (re)allocated to a profile
+    every sweep, drawn from the current mixing proportions (its posterior
+    given zero data), rather than being left permanently stuck in a
+    single profile.
+}
+}
+
+\section{MCMC convergence diagnostics}{
+
+When \code{engine = "MCMC"}, \code{$mcmc_diagnostics} reports, for every
+scalar parameter (\code{"mu[g,j]"}, \code{"sigma[g,j]"}, \code{"pi[g]"}):
+\itemize{
+  \item \strong{Rhat}: the classic Gelman-Rubin potential scale reduction
+    statistic (Gelman & Rubin, 1992), comparing between- and within-chain
+    variance on the post-burn-in draws. Values noticeably above 1.1 are
+    the classic rule-of-thumb warning sign of non-convergence, and trigger
+    a \code{warning()}. \code{NA} when \code{n_chains = 1} (undefined for
+    a single chain).
+  \item \strong{ESS}: the classic (autocorrelation/spectral-density-based)
+    effective sample size, i.e. how many independent draws the
+    autocorrelated post-burn-in draws (pooled across chains) are worth.
+}
+Computing these requires the \pkg{coda} package; \code{$mcmc_diagnostics}
+is \code{NULL} (with a \code{warning()}) if it is not installed.
+}
+
 \examples{
-# Quick example using a small subset of the iris dataset
-data(iris)
-fit <- robust_lpa(data = iris[1:30, 1:2], G = 2, model = 1, n_starts = 1)
-# Print the fit indices
-fit$fit
+# Fast demonstration on the bundled `neuro_data` dataset (standardized,
+# as recommended -- see `lambda` and `prior_laplace` above).
+data(neuro_data)
+x <- scale(as.matrix(neuro_data[, c("Memory", "Attention", "Executive_Functions",
+                                     "RT_Stroop", "RT_TMT")]))
+# Huber-weighted robust estimation can occasionally emit a log-likelihood
+# decrease warning as an expected side effect of down-weighting outliers
+# mid-fit (see the "Robust estimation" section above); wrapped in
+# suppressWarnings() below for a clean example, not because it signals a
+# problem with the fit.
+fit <- suppressWarnings(robust_lpa(x, G = 2, model = 6, n_starts = 2, max_iter = 30))
+fit           # print.robust_lpa(): concise overview of the fit
+summary(fit)  # summary.robust_lpa(): profile means/sizes and full fit indices
+
+# `neuro_data` injects extra, variable-magnitude outliers into RT_Stroop
+# and RT_TMT for a subset of the Pathological group; compare robust
+# (default) vs. classical (robust = FALSE) estimation of the profile means.
+fit_robust <- suppressWarnings(robust_lpa(x, G = 2, model = 6, n_starts = 2, max_iter = 30))
+fit_classical <- robust_lpa(x, G = 2, model = 6, n_starts = 2, max_iter = 30, robust = FALSE)
+sapply(fit_robust$means, `[`, "RT_Stroop")
+sapply(fit_classical$means, `[`, "RT_Stroop")
+
+\donttest{
+# MCMC engine: 4 chains (default), with a small mcmc_iter for speed, and
+# the resulting Gelman-Rubin / ESS convergence diagnostics.
+fit_mcmc <- suppressWarnings(robust_lpa(x, G = 2, model = 6, engine = "MCMC",
+                                         mcmc_iter = 200, n_chains = 4))
+summary(fit_mcmc)  # includes $mcmc_diagnostics (Rhat / ESS) in the printout
+}
+}
+\references{
+Gelman, A., & Rubin, D. B. (1992). Inference from iterative simulation
+  using multiple sequences. \emph{Statistical Science}, 7(4), 457-472.
+  \doi{10.1214/ss/1177011136}
+
+  Park, T., & Casella, G. (2008). The Bayesian Lasso. \emph{Journal of the
+  American Statistical Association}, 103(482), 681-686.
+  \doi{10.1198/016214508000000337}
+}
+\seealso{
+\code{\link{estimate_profiles_robust}} to fit and compare many
+  \code{G} / \code{model} combinations at once, \code{\link{blrt_robust}}
+  for a bootstrapped likelihood ratio test to choose the number of
+  profiles, and \code{\link{plot_mcmc_chains}} to inspect MCMC chains.
 }

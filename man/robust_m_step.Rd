@@ -2,31 +2,60 @@
 % Please edit documentation in R/robust_m_step.R
 \name{robust_m_step}
 \alias{robust_m_step}
-\title{Perform a Robust M-Step for Latent Profile Analysis}
+\title{Auxiliary M-Step Function for Robust Estimation}
 \usage{
-robust_m_step(data, z, alpha = 0.05)
+robust_m_step(data, z, alpha = 0.05, lambda = 0, robust = TRUE)
 }
 \arguments{
-\item{data}{A matrix or data.frame of observations.}
+\item{data}{A numeric matrix, possibly containing \code{NA} values.}
 
-\item{z}{A numeric vector containing the posterior probabilities of belonging to this cluster.}
+\item{z}{Posterior probabilities for a given cluster (length \code{nrow(data)}).}
 
-\item{alpha}{Significance level for the Chi-squared outlier cutoff (default is 0.05).}
+\item{alpha}{Significance level for the Huber threshold (chi-squared
+cutoff): observations whose squared Mahalanobis distance exceeds the
+\code{1 - alpha} chi-squared quantile are down-weighted. Smaller
+\code{alpha} down-weights fewer, more extreme points; larger \code{alpha}
+down-weights more aggressively. Default \code{0.05}. Ignored when
+\code{robust = FALSE}.}
+
+\item{lambda}{Non-negative LASSO penalty applied to the mean vector via
+soft-thresholding. Only meaningful on centered/scaled data (shrinkage is
+toward zero on the raw variable scale); see \code{\link{robust_lpa}}.
+Default \code{0} (no shrinkage).}
+
+\item{robust}{Logical. If \code{TRUE} (default), use Huber down-weighting
+of multivariate outliers as described above. If \code{FALSE}, estimate
+the mean and covariance with ordinary (non-robust) posterior-probability
+weights only.}
 }
 \value{
-A list containing the robust 'mean' vector and the robust 'covariance' matrix.
+A list with \code{mean} (numeric row vector) and \code{covariance}
+  (a positive-(semi)definite matrix).
 }
 \description{
-Perform a Robust M-Step for Latent Profile Analysis
+Computes a single profile's posterior-probability-weighted mean and
+covariance matrix, with optional Huber down-weighting of multivariate
+outliers and optional soft-thresholding (LASSO-type shrinkage) of the
+mean. Used internally by \code{\link{robust_lpa}} at every EM iteration,
+for every profile; not intended to be called directly by end users.
 }
-\examples{
-data(iris)
-# Simulate initial probabilities for a single profile
-z_init <- runif(30)
-z_init <- z_init / sum(z_init)
+\details{
+When \code{robust = TRUE} (the default), robustness weights are computed
+from Mahalanobis distances to a preliminary (non-robust) weighted
+mean/covariance estimated directly from \code{data}. For complete data
+this preliminary estimate is the ordinary weighted mean/covariance; for
+data with missing values it is obtained via pairwise-available-case FIML
+estimation (\code{robust_update_fiml_cpp()} with all robustness
+weights set to 1), so that the Huber cutoff is computed against a
+Mahalanobis metric that actually reflects the scale and correlation
+structure of the data rather than an arbitrary fixed matrix.
 
-m_step_res <- robust_m_step(iris[1:30, 1:2], z = z_init)
-
-# Print the robust mean calculated in the M-step
-m_step_res$mean
+When \code{robust = FALSE}, the Huber down-weighting step is skipped
+entirely (all robustness weights are fixed at 1) and the profile's mean
+and covariance are computed in a single ordinary posterior-probability-
+weighted pass -- i.e. classical (non-robust) EM estimation for a Gaussian
+mixture, with the same FIML available-case handling of missing data. This
+also skips the preliminary-estimate pass, so \code{robust = FALSE} is
+somewhat faster in addition to being non-robust.
 }
+\keyword{internal}

@@ -5,6 +5,7 @@
 #' @useDynLib RobustLPA, .registration = TRUE
 #' @importFrom Rcpp sourceCpp
 #' @importFrom stats qchisq rnorm runif
+#' @importFrom utils modifyList
 ## usethis namespace: end
 NULL
 

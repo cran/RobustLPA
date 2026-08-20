@@ -49,15 +49,16 @@ BEGIN_RCPP
 END_RCPP
 }
 // robust_update_cpp
-Rcpp::List robust_update_cpp(arma::mat X, arma::vec z, arma::vec w);
-RcppExport SEXP _RobustLPA_robust_update_cpp(SEXP XSEXP, SEXP zSEXP, SEXP wSEXP) {
+Rcpp::List robust_update_cpp(arma::mat X, arma::vec z, arma::vec w, double lambda);
+RcppExport SEXP _RobustLPA_robust_update_cpp(SEXP XSEXP, SEXP zSEXP, SEXP wSEXP, SEXP lambdaSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::mat >::type X(XSEXP);
     Rcpp::traits::input_parameter< arma::vec >::type z(zSEXP);
     Rcpp::traits::input_parameter< arma::vec >::type w(wSEXP);
-    rcpp_result_gen = Rcpp::wrap(robust_update_cpp(X, z, w));
+    Rcpp::traits::input_parameter< double >::type lambda(lambdaSEXP);
+    rcpp_result_gen = Rcpp::wrap(robust_update_cpp(X, z, w, lambda));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -114,15 +115,33 @@ BEGIN_RCPP
 END_RCPP
 }
 // robust_update_fiml_cpp
-Rcpp::List robust_update_fiml_cpp(arma::mat X, arma::vec z, arma::vec w);
-RcppExport SEXP _RobustLPA_robust_update_fiml_cpp(SEXP XSEXP, SEXP zSEXP, SEXP wSEXP) {
+Rcpp::List robust_update_fiml_cpp(arma::mat X, arma::vec z, arma::vec w, double lambda);
+RcppExport SEXP _RobustLPA_robust_update_fiml_cpp(SEXP XSEXP, SEXP zSEXP, SEXP wSEXP, SEXP lambdaSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::mat >::type X(XSEXP);
     Rcpp::traits::input_parameter< arma::vec >::type z(zSEXP);
     Rcpp::traits::input_parameter< arma::vec >::type w(wSEXP);
-    rcpp_result_gen = Rcpp::wrap(robust_update_fiml_cpp(X, z, w));
+    Rcpp::traits::input_parameter< double >::type lambda(lambdaSEXP);
+    rcpp_result_gen = Rcpp::wrap(robust_update_fiml_cpp(X, z, w, lambda));
+    return rcpp_result_gen;
+END_RCPP
+}
+// robust_mcmc_cpp
+Rcpp::List robust_mcmc_cpp(arma::mat X, int G, int model, int mcmc_iter, double prior_laplace, bool robust, double alpha);
+RcppExport SEXP _RobustLPA_robust_mcmc_cpp(SEXP XSEXP, SEXP GSEXP, SEXP modelSEXP, SEXP mcmc_iterSEXP, SEXP prior_laplaceSEXP, SEXP robustSEXP, SEXP alphaSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type X(XSEXP);
+    Rcpp::traits::input_parameter< int >::type G(GSEXP);
+    Rcpp::traits::input_parameter< int >::type model(modelSEXP);
+    Rcpp::traits::input_parameter< int >::type mcmc_iter(mcmc_iterSEXP);
+    Rcpp::traits::input_parameter< double >::type prior_laplace(prior_laplaceSEXP);
+    Rcpp::traits::input_parameter< bool >::type robust(robustSEXP);
+    Rcpp::traits::input_parameter< double >::type alpha(alphaSEXP);
+    rcpp_result_gen = Rcpp::wrap(robust_mcmc_cpp(X, G, model, mcmc_iter, prior_laplace, robust, alpha));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -131,12 +150,13 @@ static const R_CallMethodDef CallEntries[] = {
     {"_RobustLPA_robust_mean_cpp", (DL_FUNC) &_RobustLPA_robust_mean_cpp, 2},
     {"_RobustLPA_mahalanobis_cpp", (DL_FUNC) &_RobustLPA_mahalanobis_cpp, 3},
     {"_RobustLPA_huber_weights_cpp", (DL_FUNC) &_RobustLPA_huber_weights_cpp, 2},
-    {"_RobustLPA_robust_update_cpp", (DL_FUNC) &_RobustLPA_robust_update_cpp, 3},
+    {"_RobustLPA_robust_update_cpp", (DL_FUNC) &_RobustLPA_robust_update_cpp, 4},
     {"_RobustLPA_dmvnorm_cpp", (DL_FUNC) &_RobustLPA_dmvnorm_cpp, 3},
     {"_RobustLPA_dmvnorm_fiml_cpp", (DL_FUNC) &_RobustLPA_dmvnorm_fiml_cpp, 3},
     {"_RobustLPA_mahalanobis_fiml_cpp", (DL_FUNC) &_RobustLPA_mahalanobis_fiml_cpp, 3},
     {"_RobustLPA_huber_weights_fiml_cpp", (DL_FUNC) &_RobustLPA_huber_weights_fiml_cpp, 3},
-    {"_RobustLPA_robust_update_fiml_cpp", (DL_FUNC) &_RobustLPA_robust_update_fiml_cpp, 3},
+    {"_RobustLPA_robust_update_fiml_cpp", (DL_FUNC) &_RobustLPA_robust_update_fiml_cpp, 4},
+    {"_RobustLPA_robust_mcmc_cpp", (DL_FUNC) &_RobustLPA_robust_mcmc_cpp, 7},
     {NULL, NULL, 0}
 };
 
