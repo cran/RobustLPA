@@ -10,4 +10,4 @@
 NULL
 
 # Prevent CRAN notes for ggplot2 variables (Standard Non-Standard Evaluation fix)
-utils::globalVariables(c("Variable", "Mean", "Class", "Ymin", "Ymax"))
+utils::globalVariables(c("Variable", "Mean", "Class", "Ymin", "Ymax", "Time", "Value", "Outcome", "Person"))

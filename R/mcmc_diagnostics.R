@@ -25,7 +25,7 @@
 #' precise posterior summaries.
 #'
 #' @param chains A list of length \code{n_chains}, each element as returned
-#'   by \code{robust_mcmc_cpp()} (see \code{\link{.reshape_mcmc_draws}}).
+#'   by \code{mcmc_chain_cpp()} (see \code{\link{.reshape_mcmc_draws}}).
 #' @param mcmc_iter Integer, the total number of iterations per chain.
 #' @param burnin Integer, the number of leading iterations per chain to
 #'   discard as burn-in before computing diagnostics.
@@ -63,12 +63,38 @@
   }
 
   draws_array <- .reshape_mcmc_draws(chains, iters = valid_iters)
+  .diagnostics_from_array(draws_array)
+}
+
+#' Gelman-Rubin R-hat and Effective Sample Size From a Draws Array
+#'
+#' Shared by the LPA and growth-mixture MCMC engines.
+#'
+#' @param draws_array A numeric \code{[iterations, chains, parameters]}
+#'   array of post-burn-in draws with parameter names in its third
+#'   dimension.
+#' @return A data.frame with \code{Parameter}, \code{Rhat} and \code{ESS},
+#'   or \code{NULL} (with a warning) if \pkg{coda} is unavailable or there
+#'   are fewer than 2 draws per chain.
+#' @keywords internal
+#' @noRd
+.diagnostics_from_array <- function(draws_array) {
+  n_valid <- dim(draws_array)[1]
+  n_chains <- dim(draws_array)[2]
+  if (n_valid < 2) {
+    warning("Fewer than 2 post-burn-in MCMC iterations are available; convergence diagnostics ",
+            "(R-hat, ESS) cannot be computed. Increase `mcmc_iter`.")
+    return(NULL)
+  }
+  if (!requireNamespace("coda", quietly = TRUE)) {
+    warning("The 'coda' package is required to compute MCMC convergence diagnostics; returning NULL.")
+    return(NULL)
+  }
   param_names <- dimnames(draws_array)[[3]]
-
   mcmc_list <- coda::mcmc.list(
-    lapply(seq_len(n_chains), function(k) coda::mcmc(draws_array[, k, , drop = TRUE]))
+    lapply(seq_len(n_chains), function(k) coda::mcmc(matrix(draws_array[, k, ], nrow = n_valid,
+                                                            dimnames = list(NULL, param_names))))
   )
-
   ess <- tryCatch({
     es <- coda::effectiveSize(mcmc_list)
     as.numeric(es[param_names])
@@ -76,7 +102,6 @@
     warning("Failed to compute effective sample size via 'coda': ", conditionMessage(e))
     rep(NA_real_, length(param_names))
   })
-
   if (n_chains < 2) {
     rhat <- rep(NA_real_, length(param_names))
   } else {
@@ -85,22 +110,9 @@
       point_est <- gd$psrf[, "Point est."]
       names(point_est) <- rownames(gd$psrf)
       as.numeric(point_est[param_names])
-    }, error = function(e) {
-      warning(
-        "coda::gelman.diag() failed (", conditionMessage(e), "); falling back to a manual ",
-        "Gelman-Rubin calculation."
-      )
-      as.numeric(.rhat_manual(draws_array)[param_names])
-    })
+    }, error = function(e) as.numeric(.rhat_manual(draws_array)[param_names]))
   }
-
-  data.frame(
-    Parameter = param_names,
-    Rhat = rhat,
-    ESS = ess,
-    row.names = NULL,
-    stringsAsFactors = FALSE
-  )
+  data.frame(Parameter = param_names, Rhat = rhat, ESS = ess, row.names = NULL, stringsAsFactors = FALSE)
 }
 
 #' Manual Fallback Gelman-Rubin R-hat Calculation

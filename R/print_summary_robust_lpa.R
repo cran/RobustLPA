@@ -14,13 +14,13 @@
 #' @examples
 #' data(neuro_data)
 #' x <- scale(as.matrix(neuro_data[, c("Memory", "RT_Stroop")]))
-#' fit <- suppressWarnings(robust_lpa(x, G = 2, model = 2, n_starts = 3, max_iter = 20))
+#' fit <- robust_lpa(x, G = 2, model = 2, n_starts = 3, max_iter = 20)
 #' print(fit)
 #' @export
 print.robust_lpa <- function(x, ...) {
   cat(sprintf(
-    "<robust_lpa> %s | model %d | G = %d | N = %d\n",
-    x$engine, x$fit$Model, x$fit$Profiles, nrow(x$probabilities)
+    "<robust_lpa> %s | model %d | G = %d | N = %d | %s\n",
+    x$engine, x$fit$Model, x$fit$Profiles, nrow(x$probabilities), .describe_method(x)
   ))
   cat(sprintf(
     "LogLik = %.1f | AIC = %.1f | BIC = %.1f | Entropy = %.3f\n",
@@ -30,11 +30,26 @@ print.robust_lpa <- function(x, ...) {
   cat("Proportions: ", paste(sprintf("P%d=%.2f", seq_along(props), props), collapse = ", "), "\n", sep = "")
   if (identical(x$engine, "MCMC") && !is.null(x$mcmc_draws)) {
     cat(sprintf(
-      "MCMC: %d chain(s) x %d iter (see summary() for Rhat/ESS)\n",
-      x$mcmc_draws$n_chains, x$mcmc_draws$mcmc_iter
+      "MCMC: %d chain(s) x %d iter | WAIC = %.1f (see summary() for Rhat/ESS)\n",
+      x$mcmc_draws$n_chains, x$mcmc_draws$mcmc_iter, x$fit$WAIC %||% NA_real_
     ))
+  } else if (isFALSE(x$converged)) {
+    cat(sprintf("EM did not converge within %d iterations (consider a larger `max_iter`).\n", x$iterations))
   }
   invisible(x)
+}
+
+#' Human-Readable Description of a Fit's Estimation Method
+#' @keywords internal
+#' @noRd
+.describe_method <- function(x) {
+  method <- x$robust_method %||% "huber"
+  switch(method,
+    none = "classical (Gaussian)",
+    huber = "robust: Huber",
+    t = sprintf("robust: multivariate t (nu = %.2f)", x$nu %||% NA_real_),
+    method
+  )
 }
 
 #' Summarize a Fitted Robust LPA Model
@@ -54,17 +69,20 @@ print.robust_lpa <- function(x, ...) {
 #' @param ... Currently ignored (present for S3 consistency with the generic
 #'   \code{\link[base]{summary}}).
 #' @return An object of class \code{"summary.robust_lpa"}, a list with
-#'   \code{engine}, \code{model}, \code{G}, \code{n}, \code{means} (a
+#'   \code{engine}, \code{method} (a description of the estimation method),
+#'   \code{converged}/\code{iterations} (EM engine), \code{model}, \code{G},
+#'   \code{n}, \code{means} (a
 #'   variables x profiles matrix), \code{sizes} (a data.frame of profile
 #'   sizes/mixing proportions), \code{fit} (the one-row fit-indices
-#'   data.frame, restricted to the headline columns), and, for the MCMC
+#'   data.frame, restricted to the headline columns, including \code{WAIC}
+#'   for the MCMC engine), and, for the MCMC
 #'   engine only, \code{mcmc_info} (chain configuration and convergence
 #'   diagnostics).
 #' @seealso \code{\link{robust_lpa}}, \code{\link{print.robust_lpa}}
 #' @examples
 #' data(neuro_data)
 #' x <- scale(as.matrix(neuro_data[, c("Memory", "RT_Stroop")]))
-#' fit <- suppressWarnings(robust_lpa(x, G = 2, model = 2, n_starts = 3, max_iter = 20))
+#' fit <- robust_lpa(x, G = 2, model = 2, n_starts = 3, max_iter = 20)
 #' summary(fit)
 #' @export
 summary.robust_lpa <- function(object, ...) {
@@ -96,14 +114,18 @@ summary.robust_lpa <- function(object, ...) {
     )
   }
 
+  fit_cols <- intersect(c("LogLik", "AIC", "BIC", "Entropy", "WAIC"), names(object$fit))
   out <- list(
     engine = object$engine,
+    method = .describe_method(object),
+    converged = object$converged,
+    iterations = object$iterations,
     model = object$fit$Model,
     G = G,
     n = nrow(object$probabilities),
     means = means_mat,
     sizes = size_df,
-    fit = object$fit[, c("LogLik", "AIC", "BIC", "Entropy"), drop = FALSE],
+    fit = object$fit[, fit_cols, drop = FALSE],
     mcmc_info = mcmc_info
   )
   class(out) <- "summary.robust_lpa"
@@ -127,6 +149,7 @@ summary.robust_lpa <- function(object, ...) {
 #' @export
 print.summary.robust_lpa <- function(x, digits = 2, ...) {
   cat(sprintf("robust_lpa summary -- %s | model %d | G = %d | N = %d\n", x$engine, x$model, x$G, x$n))
+  if (!is.null(x$method)) cat(sprintf("Estimation: %s\n", x$method))
 
   cat("\nProfile means:\n")
   print(round(x$means, digits))
@@ -135,9 +158,13 @@ print.summary.robust_lpa <- function(x, digits = 2, ...) {
   print(x$sizes, row.names = FALSE)
 
   cat(sprintf(
-    "\nFit: LogLik = %.1f | AIC = %.1f | BIC = %.1f | Entropy = %.3f\n",
-    x$fit$LogLik, x$fit$AIC, x$fit$BIC, x$fit$Entropy
+    "\nFit: LogLik = %.1f | AIC = %.1f | BIC = %.1f | Entropy = %.3f%s\n",
+    x$fit$LogLik, x$fit$AIC, x$fit$BIC, x$fit$Entropy,
+    if (!is.null(x$fit$WAIC)) sprintf(" | WAIC = %.1f", x$fit$WAIC) else ""
   ))
+  if (isFALSE(x$converged)) {
+    cat(sprintf("Note: EM did not converge within %d iterations (consider a larger `max_iter`).\n", x$iterations))
+  }
 
   if (!is.null(x$mcmc_info)) {
     diag <- x$mcmc_info$diagnostics

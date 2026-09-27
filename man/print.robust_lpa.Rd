@@ -25,7 +25,7 @@ and full diagnostics -- use \code{\link{summary.robust_lpa}} for those.
 \examples{
 data(neuro_data)
 x <- scale(as.matrix(neuro_data[, c("Memory", "RT_Stroop")]))
-fit <- suppressWarnings(robust_lpa(x, G = 2, model = 2, n_starts = 3, max_iter = 20))
+fit <- robust_lpa(x, G = 2, model = 2, n_starts = 3, max_iter = 20)
 print(fit)
 }
 \seealso{

@@ -28,19 +28,22 @@ estimate_profiles_robust(
 \item{engine}{String. Either "EM" or "MCMC".}
 
 \item{cores}{Integer. Number of CPU cores to use for parallel processing
-\emph{across} the requested \code{n_profiles} x \code{models} grid (and
-across \code{k_folds} within \code{tune_lasso}). This is a different
-axis of parallelism from \code{\link{robust_lpa}}'s own \code{cores}
-argument (which parallelizes across EM restarts / MCMC chains
-\emph{within} a single model fit); if you also pass \code{cores} through
-\code{...} to \code{\link{robust_lpa}}, keep the product of the two
-roughly at or below your machine's core count to avoid oversubscription.}
+\emph{across} the requested \code{n_profiles} x \code{models} grid. This
+is a different axis of parallelism from \code{\link{robust_lpa}}'s own
+\code{cores} argument; if you also pass \code{cores} through \code{...},
+keep the product of the two at or below your machine's core count.
+Results are identical for any value of \code{cores} given the same
+\code{set.seed()}.}
 
 \item{n_starts}{Number of initializations per model.}
 
-\item{lambda}{Fixed penalty for LASSO.}
+\item{lambda}{Fixed penalty for LASSO (EM engine).}
 
-\item{tune_lasso}{Logical. If TRUE, finds optimal lambda via cross-validation.}
+\item{tune_lasso}{Logical. If TRUE, selects \code{lambda} from
+\code{lambda_grid} by k-fold cross-validation of the held-out
+observed-data log-likelihood (EM engine only; ignored with a warning
+for \code{engine = "MCMC"}, whose shrinkage is governed by
+\code{prior_laplace}).}
 
 \item{k_folds}{Number of folds for cross-validation.}
 
@@ -48,24 +51,24 @@ roughly at or below your machine's core count to avoid oversubscription.}
 
 \item{...}{Additional arguments passed on to every internal
 \code{\link{robust_lpa}} call (e.g. \code{max_iter}, \code{tol},
-\code{robust}, \code{alpha}, \code{cores}, and, when
-\code{engine = "MCMC"}, \code{mcmc_iter}/\code{n_chains}/\code{prior_laplace})
--- for instance, pass \code{robust = FALSE} here to compare
-model/profile combinations using classical (non-robust) estimation
-throughout, for either engine.}
+\code{robust}, \code{robust_method}, \code{nu}, \code{alpha},
+\code{init}, and, when \code{engine = "MCMC"},
+\code{mcmc_iter}/\code{n_chains}/\code{prior_laplace}).}
 }
 \value{
-A list containing the fit comparison table and the estimated models.
+A list containing \code{fit_table} (one row per successfully
+  fitted model, with a \code{Lambda} column) and \code{models} (the
+  fitted \code{robust_lpa} objects, named \code{"model_<m>_profiles_<G>"}).
 }
 \description{
-Estimate Robust Latent Profile Models Across Profiles and Models
+Fits every combination of \code{n_profiles} and \code{models} with
+\code{\link{robust_lpa}} and collects their fit indices in one table.
 }
 \examples{
-# Quick evaluation of multiple profiles
 data(neuro_data)
 x <- scale(as.matrix(neuro_data[, c("Memory", "RT_Stroop")]))
-res <- suppressWarnings(estimate_profiles_robust(x, n_profiles = 1:2, models = 1, n_starts = 3))
+set.seed(1)
+res <- estimate_profiles_robust(x, n_profiles = 1:2, models = 1, n_starts = 3)
 res$fit_table
-# Each element of `res$models` is a `robust_lpa` object with print/summary methods
 summary(res$models[[1]])
 }

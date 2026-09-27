@@ -11,6 +11,132 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
+// gmm_class_estep_cpp
+Rcpp::List gmm_class_estep_cpp(const arma::vec& y, const arma::vec& time, const arma::ivec& outc, const arma::ivec& starts, const arma::vec& beta, const arma::mat& D, const arma::vec& sig2, int K, int degree, int nrand, int dist, double nu);
+RcppExport SEXP _RobustLPA_gmm_class_estep_cpp(SEXP ySEXP, SEXP timeSEXP, SEXP outcSEXP, SEXP startsSEXP, SEXP betaSEXP, SEXP DSEXP, SEXP sig2SEXP, SEXP KSEXP, SEXP degreeSEXP, SEXP nrandSEXP, SEXP distSEXP, SEXP nuSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::vec& >::type y(ySEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type time(timeSEXP);
+    Rcpp::traits::input_parameter< const arma::ivec& >::type outc(outcSEXP);
+    Rcpp::traits::input_parameter< const arma::ivec& >::type starts(startsSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type beta(betaSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type D(DSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type sig2(sig2SEXP);
+    Rcpp::traits::input_parameter< int >::type K(KSEXP);
+    Rcpp::traits::input_parameter< int >::type degree(degreeSEXP);
+    Rcpp::traits::input_parameter< int >::type nrand(nrandSEXP);
+    Rcpp::traits::input_parameter< int >::type dist(distSEXP);
+    Rcpp::traits::input_parameter< double >::type nu(nuSEXP);
+    rcpp_result_gen = Rcpp::wrap(gmm_class_estep_cpp(y, time, outc, starts, beta, D, sig2, K, degree, nrand, dist, nu));
+    return rcpp_result_gen;
+END_RCPP
+}
+// gmm_class_suffstats_cpp
+Rcpp::List gmm_class_suffstats_cpp(const arma::vec& y, const arma::vec& time, const arma::ivec& outc, const arma::ivec& starts, const arma::vec& beta, const arma::mat& D, const arma::vec& sig2, int K, int degree, int nrand, const arma::vec& z, const arma::vec& w, bool t_scatter);
+RcppExport SEXP _RobustLPA_gmm_class_suffstats_cpp(SEXP ySEXP, SEXP timeSEXP, SEXP outcSEXP, SEXP startsSEXP, SEXP betaSEXP, SEXP DSEXP, SEXP sig2SEXP, SEXP KSEXP, SEXP degreeSEXP, SEXP nrandSEXP, SEXP zSEXP, SEXP wSEXP, SEXP t_scatterSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::vec& >::type y(ySEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type time(timeSEXP);
+    Rcpp::traits::input_parameter< const arma::ivec& >::type outc(outcSEXP);
+    Rcpp::traits::input_parameter< const arma::ivec& >::type starts(startsSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type beta(betaSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type D(DSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type sig2(sig2SEXP);
+    Rcpp::traits::input_parameter< int >::type K(KSEXP);
+    Rcpp::traits::input_parameter< int >::type degree(degreeSEXP);
+    Rcpp::traits::input_parameter< int >::type nrand(nrandSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type z(zSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type w(wSEXP);
+    Rcpp::traits::input_parameter< bool >::type t_scatter(t_scatterSEXP);
+    rcpp_result_gen = Rcpp::wrap(gmm_class_suffstats_cpp(y, time, outc, starts, beta, D, sig2, K, degree, nrand, z, w, t_scatter));
+    return rcpp_result_gen;
+END_RCPP
+}
+// gmm_class_gls_cpp
+Rcpp::List gmm_class_gls_cpp(const arma::vec& y, const arma::vec& time, const arma::ivec& outc, const arma::ivec& starts, const arma::mat& D, const arma::vec& sig2, int K, int degree, int nrand, const arma::vec& z, const arma::vec& w);
+RcppExport SEXP _RobustLPA_gmm_class_gls_cpp(SEXP ySEXP, SEXP timeSEXP, SEXP outcSEXP, SEXP startsSEXP, SEXP DSEXP, SEXP sig2SEXP, SEXP KSEXP, SEXP degreeSEXP, SEXP nrandSEXP, SEXP zSEXP, SEXP wSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::vec& >::type y(ySEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type time(timeSEXP);
+    Rcpp::traits::input_parameter< const arma::ivec& >::type outc(outcSEXP);
+    Rcpp::traits::input_parameter< const arma::ivec& >::type starts(startsSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type D(DSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type sig2(sig2SEXP);
+    Rcpp::traits::input_parameter< int >::type K(KSEXP);
+    Rcpp::traits::input_parameter< int >::type degree(degreeSEXP);
+    Rcpp::traits::input_parameter< int >::type nrand(nrandSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type z(zSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type w(wSEXP);
+    rcpp_result_gen = Rcpp::wrap(gmm_class_gls_cpp(y, time, outc, starts, D, sig2, K, degree, nrand, z, w));
+    return rcpp_result_gen;
+END_RCPP
+}
+// gmm_class_resid_cpp
+Rcpp::List gmm_class_resid_cpp(const arma::vec& y, const arma::vec& time, const arma::ivec& outc, const arma::ivec& starts, const arma::vec& beta, const arma::mat& bhat, const arma::vec& zcz, int K, int degree, int nrand, const arma::vec& z, const arma::vec& w, bool t_scatter);
+RcppExport SEXP _RobustLPA_gmm_class_resid_cpp(SEXP ySEXP, SEXP timeSEXP, SEXP outcSEXP, SEXP startsSEXP, SEXP betaSEXP, SEXP bhatSEXP, SEXP zczSEXP, SEXP KSEXP, SEXP degreeSEXP, SEXP nrandSEXP, SEXP zSEXP, SEXP wSEXP, SEXP t_scatterSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::vec& >::type y(ySEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type time(timeSEXP);
+    Rcpp::traits::input_parameter< const arma::ivec& >::type outc(outcSEXP);
+    Rcpp::traits::input_parameter< const arma::ivec& >::type starts(startsSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type beta(betaSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type bhat(bhatSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type zcz(zczSEXP);
+    Rcpp::traits::input_parameter< int >::type K(KSEXP);
+    Rcpp::traits::input_parameter< int >::type degree(degreeSEXP);
+    Rcpp::traits::input_parameter< int >::type nrand(nrandSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type z(zSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type w(wSEXP);
+    Rcpp::traits::input_parameter< bool >::type t_scatter(t_scatterSEXP);
+    rcpp_result_gen = Rcpp::wrap(gmm_class_resid_cpp(y, time, outc, starts, beta, bhat, zcz, K, degree, nrand, z, w, t_scatter));
+    return rcpp_result_gen;
+END_RCPP
+}
+// gmm_mcmc_chain_cpp
+Rcpp::List gmm_mcmc_chain_cpp(const arma::vec& y, const arma::vec& time, const arma::ivec& outc, const arma::ivec& starts, int K, int degree, int nrand, int G, int mcmc_iter, int robust_type, double alpha, double nu_init, bool estimate_nu, bool re_equal, bool resid_equal, int re_structure, const arma::mat& rate_growth, const arma::mat& rate_diff, const arma::vec& rate_group, const arma::mat& group_scale, bool group_diff, const arma::vec& beta_prior_sd, const arma::vec& re_prior_scale, const arma::mat& beta0, const Rcpp::List& D0, const arma::mat& sig2_0, const arma::vec& pi0);
+RcppExport SEXP _RobustLPA_gmm_mcmc_chain_cpp(SEXP ySEXP, SEXP timeSEXP, SEXP outcSEXP, SEXP startsSEXP, SEXP KSEXP, SEXP degreeSEXP, SEXP nrandSEXP, SEXP GSEXP, SEXP mcmc_iterSEXP, SEXP robust_typeSEXP, SEXP alphaSEXP, SEXP nu_initSEXP, SEXP estimate_nuSEXP, SEXP re_equalSEXP, SEXP resid_equalSEXP, SEXP re_structureSEXP, SEXP rate_growthSEXP, SEXP rate_diffSEXP, SEXP rate_groupSEXP, SEXP group_scaleSEXP, SEXP group_diffSEXP, SEXP beta_prior_sdSEXP, SEXP re_prior_scaleSEXP, SEXP beta0SEXP, SEXP D0SEXP, SEXP sig2_0SEXP, SEXP pi0SEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::vec& >::type y(ySEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type time(timeSEXP);
+    Rcpp::traits::input_parameter< const arma::ivec& >::type outc(outcSEXP);
+    Rcpp::traits::input_parameter< const arma::ivec& >::type starts(startsSEXP);
+    Rcpp::traits::input_parameter< int >::type K(KSEXP);
+    Rcpp::traits::input_parameter< int >::type degree(degreeSEXP);
+    Rcpp::traits::input_parameter< int >::type nrand(nrandSEXP);
+    Rcpp::traits::input_parameter< int >::type G(GSEXP);
+    Rcpp::traits::input_parameter< int >::type mcmc_iter(mcmc_iterSEXP);
+    Rcpp::traits::input_parameter< int >::type robust_type(robust_typeSEXP);
+    Rcpp::traits::input_parameter< double >::type alpha(alphaSEXP);
+    Rcpp::traits::input_parameter< double >::type nu_init(nu_initSEXP);
+    Rcpp::traits::input_parameter< bool >::type estimate_nu(estimate_nuSEXP);
+    Rcpp::traits::input_parameter< bool >::type re_equal(re_equalSEXP);
+    Rcpp::traits::input_parameter< bool >::type resid_equal(resid_equalSEXP);
+    Rcpp::traits::input_parameter< int >::type re_structure(re_structureSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type rate_growth(rate_growthSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type rate_diff(rate_diffSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type rate_group(rate_groupSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type group_scale(group_scaleSEXP);
+    Rcpp::traits::input_parameter< bool >::type group_diff(group_diffSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type beta_prior_sd(beta_prior_sdSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type re_prior_scale(re_prior_scaleSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type beta0(beta0SEXP);
+    Rcpp::traits::input_parameter< const Rcpp::List& >::type D0(D0SEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type sig2_0(sig2_0SEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type pi0(pi0SEXP);
+    rcpp_result_gen = Rcpp::wrap(gmm_mcmc_chain_cpp(y, time, outc, starts, K, degree, nrand, G, mcmc_iter, robust_type, alpha, nu_init, estimate_nu, re_equal, resid_equal, re_structure, rate_growth, rate_diff, rate_group, group_scale, group_diff, beta_prior_sd, re_prior_scale, beta0, D0, sig2_0, pi0));
+    return rcpp_result_gen;
+END_RCPP
+}
 // robust_mean_cpp
 arma::rowvec robust_mean_cpp(arma::mat X, double threshold);
 RcppExport SEXP _RobustLPA_robust_mean_cpp(SEXP XSEXP, SEXP thresholdSEXP) {
@@ -23,140 +149,102 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// mahalanobis_cpp
-arma::vec mahalanobis_cpp(arma::mat X, arma::rowvec mu, arma::mat Sigma);
-RcppExport SEXP _RobustLPA_mahalanobis_cpp(SEXP XSEXP, SEXP muSEXP, SEXP SigmaSEXP) {
+// class_estep_cpp
+Rcpp::List class_estep_cpp(const arma::mat& X, const arma::rowvec& mu, const arma::mat& Sigma, const Rcpp::List& pat_obs, const Rcpp::List& pat_rows, int dist, double nu);
+RcppExport SEXP _RobustLPA_class_estep_cpp(SEXP XSEXP, SEXP muSEXP, SEXP SigmaSEXP, SEXP pat_obsSEXP, SEXP pat_rowsSEXP, SEXP distSEXP, SEXP nuSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::mat >::type X(XSEXP);
-    Rcpp::traits::input_parameter< arma::rowvec >::type mu(muSEXP);
-    Rcpp::traits::input_parameter< arma::mat >::type Sigma(SigmaSEXP);
-    rcpp_result_gen = Rcpp::wrap(mahalanobis_cpp(X, mu, Sigma));
+    Rcpp::traits::input_parameter< const arma::mat& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< const arma::rowvec& >::type mu(muSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type Sigma(SigmaSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::List& >::type pat_obs(pat_obsSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::List& >::type pat_rows(pat_rowsSEXP);
+    Rcpp::traits::input_parameter< int >::type dist(distSEXP);
+    Rcpp::traits::input_parameter< double >::type nu(nuSEXP);
+    rcpp_result_gen = Rcpp::wrap(class_estep_cpp(X, mu, Sigma, pat_obs, pat_rows, dist, nu));
     return rcpp_result_gen;
 END_RCPP
 }
-// huber_weights_cpp
-arma::vec huber_weights_cpp(arma::vec squared_dists, double chi_sq_cutoff);
-RcppExport SEXP _RobustLPA_huber_weights_cpp(SEXP squared_distsSEXP, SEXP chi_sq_cutoffSEXP) {
+// class_mstep_cpp
+Rcpp::List class_mstep_cpp(const arma::mat& X, const arma::vec& z, const arma::vec& w, const arma::rowvec& mu_cur, const arma::mat& Sigma_cur, const Rcpp::List& pat_obs, const Rcpp::List& pat_rows, double lambda, bool t_scatter);
+RcppExport SEXP _RobustLPA_class_mstep_cpp(SEXP XSEXP, SEXP zSEXP, SEXP wSEXP, SEXP mu_curSEXP, SEXP Sigma_curSEXP, SEXP pat_obsSEXP, SEXP pat_rowsSEXP, SEXP lambdaSEXP, SEXP t_scatterSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::vec >::type squared_dists(squared_distsSEXP);
-    Rcpp::traits::input_parameter< double >::type chi_sq_cutoff(chi_sq_cutoffSEXP);
-    rcpp_result_gen = Rcpp::wrap(huber_weights_cpp(squared_dists, chi_sq_cutoff));
-    return rcpp_result_gen;
-END_RCPP
-}
-// robust_update_cpp
-Rcpp::List robust_update_cpp(arma::mat X, arma::vec z, arma::vec w, double lambda);
-RcppExport SEXP _RobustLPA_robust_update_cpp(SEXP XSEXP, SEXP zSEXP, SEXP wSEXP, SEXP lambdaSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::mat >::type X(XSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type z(zSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type w(wSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type z(zSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type w(wSEXP);
+    Rcpp::traits::input_parameter< const arma::rowvec& >::type mu_cur(mu_curSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type Sigma_cur(Sigma_curSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::List& >::type pat_obs(pat_obsSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::List& >::type pat_rows(pat_rowsSEXP);
     Rcpp::traits::input_parameter< double >::type lambda(lambdaSEXP);
-    rcpp_result_gen = Rcpp::wrap(robust_update_cpp(X, z, w, lambda));
+    Rcpp::traits::input_parameter< bool >::type t_scatter(t_scatterSEXP);
+    rcpp_result_gen = Rcpp::wrap(class_mstep_cpp(X, z, w, mu_cur, Sigma_cur, pat_obs, pat_rows, lambda, t_scatter));
     return rcpp_result_gen;
 END_RCPP
 }
-// dmvnorm_cpp
-arma::vec dmvnorm_cpp(arma::mat X, arma::rowvec mu, arma::mat Sigma);
-RcppExport SEXP _RobustLPA_dmvnorm_cpp(SEXP XSEXP, SEXP muSEXP, SEXP SigmaSEXP) {
+// pairwise_moments_cpp
+Rcpp::List pairwise_moments_cpp(const arma::mat& X, const arma::vec& z);
+RcppExport SEXP _RobustLPA_pairwise_moments_cpp(SEXP XSEXP, SEXP zSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::mat >::type X(XSEXP);
-    Rcpp::traits::input_parameter< arma::rowvec >::type mu(muSEXP);
-    Rcpp::traits::input_parameter< arma::mat >::type Sigma(SigmaSEXP);
-    rcpp_result_gen = Rcpp::wrap(dmvnorm_cpp(X, mu, Sigma));
+    Rcpp::traits::input_parameter< const arma::mat& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type z(zSEXP);
+    rcpp_result_gen = Rcpp::wrap(pairwise_moments_cpp(X, z));
     return rcpp_result_gen;
 END_RCPP
 }
-// dmvnorm_fiml_cpp
-arma::vec dmvnorm_fiml_cpp(arma::mat X, arma::rowvec mu, arma::mat Sigma);
-RcppExport SEXP _RobustLPA_dmvnorm_fiml_cpp(SEXP XSEXP, SEXP muSEXP, SEXP SigmaSEXP) {
+// solve_lsap_cpp
+arma::uvec solve_lsap_cpp(arma::mat cost);
+RcppExport SEXP _RobustLPA_solve_lsap_cpp(SEXP costSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::mat >::type X(XSEXP);
-    Rcpp::traits::input_parameter< arma::rowvec >::type mu(muSEXP);
-    Rcpp::traits::input_parameter< arma::mat >::type Sigma(SigmaSEXP);
-    rcpp_result_gen = Rcpp::wrap(dmvnorm_fiml_cpp(X, mu, Sigma));
+    Rcpp::traits::input_parameter< arma::mat >::type cost(costSEXP);
+    rcpp_result_gen = Rcpp::wrap(solve_lsap_cpp(cost));
     return rcpp_result_gen;
 END_RCPP
 }
-// mahalanobis_fiml_cpp
-arma::vec mahalanobis_fiml_cpp(arma::mat X, arma::rowvec mu, arma::mat Sigma);
-RcppExport SEXP _RobustLPA_mahalanobis_fiml_cpp(SEXP XSEXP, SEXP muSEXP, SEXP SigmaSEXP) {
+// mcmc_chain_cpp
+Rcpp::List mcmc_chain_cpp(const arma::mat& X, int G, int model, int mcmc_iter, double prior_laplace, int robust_type, double alpha, double nu_init, bool estimate_nu, const Rcpp::List& init_mu, const Rcpp::List& init_sigma, const arma::vec& init_pi, const Rcpp::List& pat_obs, const Rcpp::List& pat_rows);
+RcppExport SEXP _RobustLPA_mcmc_chain_cpp(SEXP XSEXP, SEXP GSEXP, SEXP modelSEXP, SEXP mcmc_iterSEXP, SEXP prior_laplaceSEXP, SEXP robust_typeSEXP, SEXP alphaSEXP, SEXP nu_initSEXP, SEXP estimate_nuSEXP, SEXP init_muSEXP, SEXP init_sigmaSEXP, SEXP init_piSEXP, SEXP pat_obsSEXP, SEXP pat_rowsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::mat >::type X(XSEXP);
-    Rcpp::traits::input_parameter< arma::rowvec >::type mu(muSEXP);
-    Rcpp::traits::input_parameter< arma::mat >::type Sigma(SigmaSEXP);
-    rcpp_result_gen = Rcpp::wrap(mahalanobis_fiml_cpp(X, mu, Sigma));
-    return rcpp_result_gen;
-END_RCPP
-}
-// huber_weights_fiml_cpp
-arma::vec huber_weights_fiml_cpp(arma::mat X, arma::vec squared_dists, double alpha);
-RcppExport SEXP _RobustLPA_huber_weights_fiml_cpp(SEXP XSEXP, SEXP squared_distsSEXP, SEXP alphaSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::mat >::type X(XSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type squared_dists(squared_distsSEXP);
-    Rcpp::traits::input_parameter< double >::type alpha(alphaSEXP);
-    rcpp_result_gen = Rcpp::wrap(huber_weights_fiml_cpp(X, squared_dists, alpha));
-    return rcpp_result_gen;
-END_RCPP
-}
-// robust_update_fiml_cpp
-Rcpp::List robust_update_fiml_cpp(arma::mat X, arma::vec z, arma::vec w, double lambda);
-RcppExport SEXP _RobustLPA_robust_update_fiml_cpp(SEXP XSEXP, SEXP zSEXP, SEXP wSEXP, SEXP lambdaSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::mat >::type X(XSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type z(zSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type w(wSEXP);
-    Rcpp::traits::input_parameter< double >::type lambda(lambdaSEXP);
-    rcpp_result_gen = Rcpp::wrap(robust_update_fiml_cpp(X, z, w, lambda));
-    return rcpp_result_gen;
-END_RCPP
-}
-// robust_mcmc_cpp
-Rcpp::List robust_mcmc_cpp(arma::mat X, int G, int model, int mcmc_iter, double prior_laplace, bool robust, double alpha);
-RcppExport SEXP _RobustLPA_robust_mcmc_cpp(SEXP XSEXP, SEXP GSEXP, SEXP modelSEXP, SEXP mcmc_iterSEXP, SEXP prior_laplaceSEXP, SEXP robustSEXP, SEXP alphaSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::mat >::type X(XSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type X(XSEXP);
     Rcpp::traits::input_parameter< int >::type G(GSEXP);
     Rcpp::traits::input_parameter< int >::type model(modelSEXP);
     Rcpp::traits::input_parameter< int >::type mcmc_iter(mcmc_iterSEXP);
     Rcpp::traits::input_parameter< double >::type prior_laplace(prior_laplaceSEXP);
-    Rcpp::traits::input_parameter< bool >::type robust(robustSEXP);
+    Rcpp::traits::input_parameter< int >::type robust_type(robust_typeSEXP);
     Rcpp::traits::input_parameter< double >::type alpha(alphaSEXP);
-    rcpp_result_gen = Rcpp::wrap(robust_mcmc_cpp(X, G, model, mcmc_iter, prior_laplace, robust, alpha));
+    Rcpp::traits::input_parameter< double >::type nu_init(nu_initSEXP);
+    Rcpp::traits::input_parameter< bool >::type estimate_nu(estimate_nuSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::List& >::type init_mu(init_muSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::List& >::type init_sigma(init_sigmaSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type init_pi(init_piSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::List& >::type pat_obs(pat_obsSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::List& >::type pat_rows(pat_rowsSEXP);
+    rcpp_result_gen = Rcpp::wrap(mcmc_chain_cpp(X, G, model, mcmc_iter, prior_laplace, robust_type, alpha, nu_init, estimate_nu, init_mu, init_sigma, init_pi, pat_obs, pat_rows));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_RobustLPA_gmm_class_estep_cpp", (DL_FUNC) &_RobustLPA_gmm_class_estep_cpp, 12},
+    {"_RobustLPA_gmm_class_suffstats_cpp", (DL_FUNC) &_RobustLPA_gmm_class_suffstats_cpp, 13},
+    {"_RobustLPA_gmm_class_gls_cpp", (DL_FUNC) &_RobustLPA_gmm_class_gls_cpp, 11},
+    {"_RobustLPA_gmm_class_resid_cpp", (DL_FUNC) &_RobustLPA_gmm_class_resid_cpp, 13},
+    {"_RobustLPA_gmm_mcmc_chain_cpp", (DL_FUNC) &_RobustLPA_gmm_mcmc_chain_cpp, 27},
     {"_RobustLPA_robust_mean_cpp", (DL_FUNC) &_RobustLPA_robust_mean_cpp, 2},
-    {"_RobustLPA_mahalanobis_cpp", (DL_FUNC) &_RobustLPA_mahalanobis_cpp, 3},
-    {"_RobustLPA_huber_weights_cpp", (DL_FUNC) &_RobustLPA_huber_weights_cpp, 2},
-    {"_RobustLPA_robust_update_cpp", (DL_FUNC) &_RobustLPA_robust_update_cpp, 4},
-    {"_RobustLPA_dmvnorm_cpp", (DL_FUNC) &_RobustLPA_dmvnorm_cpp, 3},
-    {"_RobustLPA_dmvnorm_fiml_cpp", (DL_FUNC) &_RobustLPA_dmvnorm_fiml_cpp, 3},
-    {"_RobustLPA_mahalanobis_fiml_cpp", (DL_FUNC) &_RobustLPA_mahalanobis_fiml_cpp, 3},
-    {"_RobustLPA_huber_weights_fiml_cpp", (DL_FUNC) &_RobustLPA_huber_weights_fiml_cpp, 3},
-    {"_RobustLPA_robust_update_fiml_cpp", (DL_FUNC) &_RobustLPA_robust_update_fiml_cpp, 4},
-    {"_RobustLPA_robust_mcmc_cpp", (DL_FUNC) &_RobustLPA_robust_mcmc_cpp, 7},
+    {"_RobustLPA_class_estep_cpp", (DL_FUNC) &_RobustLPA_class_estep_cpp, 7},
+    {"_RobustLPA_class_mstep_cpp", (DL_FUNC) &_RobustLPA_class_mstep_cpp, 9},
+    {"_RobustLPA_pairwise_moments_cpp", (DL_FUNC) &_RobustLPA_pairwise_moments_cpp, 2},
+    {"_RobustLPA_solve_lsap_cpp", (DL_FUNC) &_RobustLPA_solve_lsap_cpp, 1},
+    {"_RobustLPA_mcmc_chain_cpp", (DL_FUNC) &_RobustLPA_mcmc_chain_cpp, 14},
     {NULL, NULL, 0}
 };
 

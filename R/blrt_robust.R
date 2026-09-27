@@ -9,6 +9,16 @@
 #' (the missingness pattern of the observed data is replicated in every
 #' simulated dataset).
 #'
+#' Data are simulated from the fitted null model in the same family that is
+#' being fitted: a Gaussian mixture for classical and Huber fits, and a
+#' multivariate-t mixture (with the fitted \code{nu}) for
+#' \code{robust_method = "t"} fits. With \code{robust_method = "t"} the
+#' test compares two proper t-mixture likelihoods and is the recommended
+#' robust option. With the Huber estimator the statistic is computed from
+#' Gaussian log-likelihoods evaluated at robust (non-ML) estimates and the
+#' null data are simulated without contamination, so the test is a
+#' heuristic whose calibration on contaminated data is not guaranteed.
+#'
 #' @param data A matrix or data.frame.
 #' @param G The number of profiles for the alternative hypothesis (compared against \code{G - 1}).
 #' @param model An integer (1 to 6) specifying the variance-covariance parameterization (see \code{\link{robust_lpa}}).
@@ -32,7 +42,8 @@
 #'   it is simplest to parallelize only at this (bootstrap-replicate) level.
 #' @param ... Additional arguments passed on to \code{\link{robust_lpa}}
 #'   (e.g. \code{max_iter}, \code{tol}, \code{mcmc_iter}, \code{n_chains},
-#'   \code{prior_laplace}, \code{robust}, \code{alpha}) -- for instance, pass
+#'   \code{prior_laplace}, \code{robust}, \code{robust_method}, \code{nu},
+#'   \code{alpha}) -- for instance, pass
 #'   \code{robust = FALSE} here to run the BLRT with classical (non-robust)
 #'   estimation throughout, for either engine. Note that with
 #'   \code{engine = "MCMC"} every one of the \code{2 * (n_samples + 1)}
@@ -60,7 +71,8 @@
 #' # Fast demonstration of the robust BLRT: is a 2nd profile justified over 1?
 #' data(neuro_data)
 #' x <- scale(as.matrix(neuro_data[, c("Memory", "RT_Stroop")]))
-#' blrt_res <- suppressWarnings(blrt_robust(x, G = 2, model = 1, n_samples = 2, n_starts = 3))
+#' set.seed(1)
+#' blrt_res <- blrt_robust(x, G = 2, model = 1, n_samples = 5, n_starts = 3)
 #' # Print the summary of the results
 #' blrt_res
 #' @export
@@ -83,6 +95,7 @@ blrt_robust <- function(data, G, model = 6, engine = "EM", n_samples = 50, n_sta
   }
 
   X <- as.matrix(data)
+  storage.mode(X) <- "double"
   n <- nrow(X)
   p <- ncol(X)
   dots <- list(...)
@@ -101,20 +114,10 @@ blrt_robust <- function(data, G, model = 6, engine = "EM", n_samples = 50, n_sta
   lrt_obs <- -2 * (mod_null$fit$LogLik - mod_alt$fit$LogLik)
   if (lrt_obs < 0) lrt_obs <- 0
 
-  # Parametric stochastic generator based on null model parameters
-  simulate_null_mixture <- function(n, p, props, means, covs) {
-    sim_X <- matrix(NA, nrow = n, ncol = p)
-    assigned_classes <- sample(1:(G - 1), size = n, replace = TRUE, prob = props)
-
-    for (i in 1:n) {
-      c_i <- assigned_classes[i]
-      # Cholesky decomposition to generate stable multivariate distributions
-      z_norm <- rnorm(p)
-      L <- chol(covs[[c_i]] + diag(1e-6, p))
-      sim_X[i, ] <- means[[c_i]] + as.vector(t(L) %*% z_norm)
-    }
-    return(sim_X)
-  }
+  # Parametric generator: the fitted null model, in the fitted family
+  # (Gaussian, or multivariate t with the fitted nu).
+  null_method <- mod_null$robust_method %||% "none"
+  null_nu <- mod_null$nu
 
   # One bootstrap replicate: simulate data under H0 from the observed null
   # model, then refit both the null and alternative models on it. Wrapped in
@@ -125,7 +128,8 @@ blrt_robust <- function(data, G, model = 6, engine = "EM", n_samples = 50, n_sta
     if (cores == 1) message(paste0("Bootstrap Sample ", b, " / ", n_samples))
 
     tryCatch({
-      sim_data <- simulate_null_mixture(n, p, mod_null$proportions, mod_null$means, mod_null$covariances)
+      sim_data <- .simulate_mixture(n, mod_null$proportions, mod_null$means, mod_null$covariances,
+                                    method = null_method, nu = null_nu)
 
       # If the initial data contained NA, replicate the same missingness structure for FIML
       if (any(is.na(X))) {
@@ -133,8 +137,8 @@ blrt_robust <- function(data, G, model = 6, engine = "EM", n_samples = 50, n_sta
       }
 
       # Fit of models on simulated data
-      fit_b_null <- tryCatch(do.call(robust_lpa, c(list(data = sim_data, G = G - 1, model = model, engine = engine, n_starts = n_starts), dots)), error = function(e) NULL)
-      fit_b_alt  <- tryCatch(do.call(robust_lpa, c(list(data = sim_data, G = G,     model = model, engine = engine, n_starts = n_starts), dots)), error = function(e) NULL)
+      fit_b_null <- tryCatch(suppressWarnings(do.call(robust_lpa, c(list(data = sim_data, G = G - 1, model = model, engine = engine, n_starts = n_starts), dots))), error = function(e) NULL)
+      fit_b_alt  <- tryCatch(suppressWarnings(do.call(robust_lpa, c(list(data = sim_data, G = G,     model = model, engine = engine, n_starts = n_starts), dots))), error = function(e) NULL)
 
       if (!is.null(fit_b_null) && !is.null(fit_b_alt)) {
         val <- -2 * (fit_b_null$fit$LogLik - fit_b_alt$fit$LogLik)
@@ -149,7 +153,8 @@ blrt_robust <- function(data, G, model = 6, engine = "EM", n_samples = 50, n_sta
   # see `cores`). Order is preserved regardless of backend.
   boot_results <- .run_parallel(
     cores, n_samples, run_one_bootstrap,
-    export_vars = c("X", "n", "p", "G", "model", "engine", "n_starts", "n_samples", "mod_null", "dots", "simulate_null_mixture"),
+    export_vars = c("X", "n", "p", "G", "model", "engine", "n_starts", "n_samples", "mod_null", "dots",
+                    "null_method", "null_nu"),
     export_env = environment()
   )
   if (cores > 1) {

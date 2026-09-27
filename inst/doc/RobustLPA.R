@@ -10,6 +10,7 @@ knitr::opts_chunk$set(
 
 ## ----setup--------------------------------------------------------------------
 library(RobustLPA)
+set.seed(2026)  # every result below is reproducible, for any number of cores
 
 ## -----------------------------------------------------------------------------
 data(neuro_data)
@@ -32,11 +33,29 @@ summary(fit_em)
 table(True_Profile = neuro_data$True_Profile, Assigned = fit_em$assignments)
 
 ## -----------------------------------------------------------------------------
+fit_t <- robust_lpa(x, G = 2, model = 6, n_starts = 5, robust_method = "t")
 fit_classical <- robust_lpa(x, G = 2, model = 6, n_starts = 5, robust = FALSE)
 rbind(
-  robust    = sapply(fit_em$means, `[`, "RT_Stroop"),
-  classical = sapply(fit_classical$means, `[`, "RT_Stroop")
+  huber     = sort(sapply(fit_em$means, `[`, "RT_Stroop")),
+  t         = sort(sapply(fit_t$means, `[`, "RT_Stroop")),
+  classical = sort(sapply(fit_classical$means, `[`, "RT_Stroop"))
 )
+fit_t$nu
+
+## -----------------------------------------------------------------------------
+set.seed(6)
+contaminated <- matrix(rnorm(400 * 3), 400, 3)
+idx <- sample(400, 20)
+contaminated[idx, ] <- contaminated[idx, ] + matrix(rnorm(60, 0, 15), 20, 3)
+sapply(list(
+  classical = robust_lpa(contaminated, G = 1, model = 6, robust = FALSE),
+  huber     = robust_lpa(contaminated, G = 1, model = 6),
+  t         = robust_lpa(contaminated, G = 1, model = 6, robust_method = "t")
+), function(f) round(diag(f$covariances[[1]]), 2))
+
+## -----------------------------------------------------------------------------
+head(order(fit_t$weights))
+round(head(sort(fit_t$weights)), 3)
 
 ## -----------------------------------------------------------------------------
 fit_lasso <- robust_lpa(x, G = 2, model = 6, n_starts = 3, lambda = 0.15)
@@ -77,12 +96,12 @@ blrt_res <- blrt_robust(x, G = 2, model = 6, n_samples = 20, n_starts = 3)
 blrt_res
 
 ## -----------------------------------------------------------------------------
-fit_mcmc <- robust_lpa(x, G = 2, model = 6, engine = "MCMC",
-                        mcmc_iter = 500, n_chains = 4, prior_laplace = 0.1)
+fit_mcmc <- robust_lpa(x, G = 2, model = 6, engine = "MCMC", robust_method = "t",
+                       mcmc_iter = 500, n_chains = 4, prior_laplace = 0.1)
 summary(fit_mcmc)
 
-## ----fig.alt = "MCMC trace plots for two profile means and one mixing proportion"----
-plot_mcmc_chains(fit_mcmc, pars = c("mu[1,1]", "mu[2,1]", "pi[1]"))
+## ----fig.alt = "MCMC trace plots for two profile means, one mixing proportion and the t degrees of freedom"----
+plot_mcmc_chains(fit_mcmc, pars = c("mu[1,1]", "mu[2,1]", "pi[1]", "nu"))
 
 ## -----------------------------------------------------------------------------
 x_reduced <- scale(as.matrix(neuro_data[, c("Memory", "Attention",

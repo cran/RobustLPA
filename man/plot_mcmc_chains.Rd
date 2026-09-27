@@ -7,7 +7,12 @@
 plot_mcmc_chains(model, pars = NULL)
 }
 \arguments{
-\item{model}{A fitted model object returned by \code{\link{robust_lpa}} with \code{engine = "MCMC"}.}
+\item{model}{A fitted model object returned by \code{\link{robust_lpa}} or
+\code{\link{robust_gmm}} with \code{engine = "MCMC"}. For growth mixture
+fits the parameters are the class trajectories (\code{"beta[g,outcome:term]"}),
+random-effect variances (\code{"D[...]"}), residual variances
+(\code{"sigma2[...]"}), class proportions (\code{"pi[g]"}) and, if
+estimated, \code{"nu"}, all on the original scale.}
 
 \item{pars}{Optional character vector of parameter names to visualize (a
 subset of the default \code{"mu[...]"} / \code{"sigma[...]"} / \code{"pi[...]"}
@@ -23,7 +28,7 @@ means, profile variances (the diagonal of each covariance matrix), and
 mixing proportions are shown; use \code{pars} to select a subset.
 }
 \details{
-\code{robust_mcmc_cpp} (called internally by \code{robust_lpa(engine =
+\code{mcmc_chain_cpp} (called internally by \code{robust_lpa(engine =
 "MCMC")}, once per chain) returns its draws as a nested list
 (\code{mu_chain}, \code{sigma_chain}, \code{pi_chain}), not the
 array/matrix format \code{bayesplot::mcmc_trace()} expects. This function
@@ -37,8 +42,9 @@ high Gelman-Rubin \eqn{\hat{R}}; see \code{model$mcmc_diagnostics}).
 
 Parameter names follow the pattern \code{"mu[g,j]"} (mean of variable
 \code{j} in profile \code{g}), \code{"sigma[g,j]"} (variance of variable
-\code{j} in profile \code{g}), and \code{"pi[g]"} (mixing proportion of
-profile \code{g}). Off-diagonal covariance terms are not included by
+\code{j} in profile \code{g}), \code{"pi[g]"} (mixing proportion of
+profile \code{g}), and, for \code{robust_method = "t"} fits with an
+estimated \code{nu}, \code{"nu"} (the t degrees of freedom). Off-diagonal covariance terms are not included by
 default to keep the default plot readable; inspect
 \code{model$mcmc_draws$chains[[1]]$sigma_chain} directly if you need those.
 }

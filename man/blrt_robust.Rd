@@ -46,7 +46,8 @@ it is simplest to parallelize only at this (bootstrap-replicate) level.}
 
 \item{...}{Additional arguments passed on to \code{\link{robust_lpa}}
 (e.g. \code{max_iter}, \code{tol}, \code{mcmc_iter}, \code{n_chains},
-\code{prior_laplace}, \code{robust}, \code{alpha}) -- for instance, pass
+\code{prior_laplace}, \code{robust}, \code{robust_method}, \code{nu},
+\code{alpha}) -- for instance, pass
 \code{robust = FALSE} here to run the BLRT with classical (non-robust)
 estimation throughout, for either engine. Note that with
 \code{engine = "MCMC"} every one of the \code{2 * (n_samples + 1)}
@@ -78,11 +79,23 @@ ratio test statistic under \code{H0}. Supports FIML simulation conditions
 (the missingness pattern of the observed data is replicated in every
 simulated dataset).
 }
+\details{
+Data are simulated from the fitted null model in the same family that is
+being fitted: a Gaussian mixture for classical and Huber fits, and a
+multivariate-t mixture (with the fitted \code{nu}) for
+\code{robust_method = "t"} fits. With \code{robust_method = "t"} the
+test compares two proper t-mixture likelihoods and is the recommended
+robust option. With the Huber estimator the statistic is computed from
+Gaussian log-likelihoods evaluated at robust (non-ML) estimates and the
+null data are simulated without contamination, so the test is a
+heuristic whose calibration on contaminated data is not guaranteed.
+}
 \examples{
 # Fast demonstration of the robust BLRT: is a 2nd profile justified over 1?
 data(neuro_data)
 x <- scale(as.matrix(neuro_data[, c("Memory", "RT_Stroop")]))
-blrt_res <- suppressWarnings(blrt_robust(x, G = 2, model = 1, n_samples = 2, n_starts = 3))
+set.seed(1)
+blrt_res <- blrt_robust(x, G = 2, model = 1, n_samples = 5, n_starts = 3)
 # Print the summary of the results
 blrt_res
 }

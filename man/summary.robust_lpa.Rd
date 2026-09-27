@@ -14,10 +14,13 @@
 }
 \value{
 An object of class \code{"summary.robust_lpa"}, a list with
-  \code{engine}, \code{model}, \code{G}, \code{n}, \code{means} (a
+  \code{engine}, \code{method} (a description of the estimation method),
+  \code{converged}/\code{iterations} (EM engine), \code{model}, \code{G},
+  \code{n}, \code{means} (a
   variables x profiles matrix), \code{sizes} (a data.frame of profile
   sizes/mixing proportions), \code{fit} (the one-row fit-indices
-  data.frame, restricted to the headline columns), and, for the MCMC
+  data.frame, restricted to the headline columns, including \code{WAIC}
+  for the MCMC engine), and, for the MCMC
   engine only, \code{mcmc_info} (chain configuration and convergence
   diagnostics).
 }
@@ -36,7 +39,7 @@ effective sample size convergence range. Returns an object of class
 \examples{
 data(neuro_data)
 x <- scale(as.matrix(neuro_data[, c("Memory", "RT_Stroop")]))
-fit <- suppressWarnings(robust_lpa(x, G = 2, model = 2, n_starts = 3, max_iter = 20))
+fit <- robust_lpa(x, G = 2, model = 2, n_starts = 3, max_iter = 20)
 summary(fit)
 }
 \seealso{

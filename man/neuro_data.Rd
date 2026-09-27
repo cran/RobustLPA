@@ -27,9 +27,7 @@ A data frame with 250 rows and 7 variables:
 }
 }
 \source{
-Simulated data for testing and documentation purposes; see
-  \code{data-raw/generate_neuro_data.R} in the package sources for the
-  full, reproducible generative code.
+Simulated data for testing and documentation purposes.
 }
 \usage{
 neuro_data
@@ -77,10 +75,7 @@ search across the six variance-covariance models, replicated over
 multiple random seeds) so that fitting \code{model = 6} with \code{G = 2}
 reliably wins by BIC over both more-parsimonious models at \code{G = 2}
 and less-parsimonious models at \code{G = 3}, and recovers
-\code{True_Profile} with better than 95\% accuracy in the reference
-implementation. See \code{data-raw/generate_neuro_data.R} (in the package
-sources, not installed) for the full generative code, the exact parameter
-values, and the fixed random seed used to build this exact copy of the
-dataset.
+\code{True_Profile} with about 93\% accuracy (classical, Huber or t
+estimation, \code{model = 6}, \code{G = 2}).
 }
 \keyword{datasets}

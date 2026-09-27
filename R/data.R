@@ -42,11 +42,8 @@
 #' multiple random seeds) so that fitting \code{model = 6} with \code{G = 2}
 #' reliably wins by BIC over both more-parsimonious models at \code{G = 2}
 #' and less-parsimonious models at \code{G = 3}, and recovers
-#' \code{True_Profile} with better than 95\% accuracy in the reference
-#' implementation. See \code{data-raw/generate_neuro_data.R} (in the package
-#' sources, not installed) for the full generative code, the exact parameter
-#' values, and the fixed random seed used to build this exact copy of the
-#' dataset.
+#' \code{True_Profile} with about 93\% accuracy (classical, Huber or t
+#' estimation, \code{model = 6}, \code{G = 2}).
 #'
 #' @format A data frame with 250 rows and 7 variables:
 #' \describe{
@@ -68,7 +65,54 @@
 #'     and correlation with \code{RT_Stroop} between groups; a subset of
 #'     Pathological observations carry an additional outlying shift.}
 #' }
-#' @source Simulated data for testing and documentation purposes; see
-#'   \code{data-raw/generate_neuro_data.R} in the package sources for the
-#'   full, reproducible generative code.
+#' @source Simulated data for testing and documentation purposes.
 "neuro_data"
+
+#' Simulated Longitudinal Neuropsychological Dataset for Robust Growth Mixture Models
+#'
+#' A synthetic longitudinal dataset (long format: one row per person and
+#' annual visit) designed as a worked example for \code{\link{robust_gmm}}:
+#' three latent classes of cognitive change, three outcomes, unbalanced
+#' follow-up with missed visits and drop-out, and a few gross data-entry
+#' errors.
+#'
+#' @details
+#' 400 persons are assigned to three latent classes ("Stable", "Slow
+#' decline", "Fast decline"; about 50/30/20\%) and followed for up to six
+#' annual visits (\code{Year} 0 to 5). \code{Memory} and \code{Executive}
+#' (T-score-like metric) decline at class-specific rates (Memory: 0, -2 and
+#' -5 points per year; Executive: 0, -1.5 and -4 points per year), whereas
+#' \code{Speed} declines by 0.5 points per year \emph{in every class} (an
+#' outcome that does not differentiate the classes, useful to illustrate the
+#' group LASSO of \code{robust_gmm(lambda_diff = , group_diff = TRUE)}; the
+#' "Stable" class has exactly zero slopes on Memory and Executive, useful
+#' to illustrate \code{lambda_growth}). Within classes, persons have
+#' correlated random intercepts (SD 5) and slopes (SD 0.4) on every outcome,
+#' and residual errors with SD 2.5. After each visit a person drops out
+#' with a probability that increases as the last observed Memory score
+#' decreases (missing at random); 8\% of the follow-up visits are missed and
+#' 5\% of the single test scores are missing. For 4\% of the persons one
+#' score is corrupted by a gross error of 25 to 40 points. \code{Age} and
+#' \code{Biomarker} are baseline characteristics that differ between the
+#' classes, for illustrating \code{\link{bch_robust}} on a
+#' \code{robust_gmm()} fit. The generating code (with its fixed seed) is
+#' installed with the package: run
+#' \code{source(system.file("scripts", "generate_neuro_long.R", package = "RobustLPA"))}
+#' to rebuild the data set.
+#'
+#' @format A data frame with one row per person and visit, and 8 variables:
+#' \describe{
+#'   \item{ID}{Person identifier.}
+#'   \item{Year}{Years since baseline (0 to 5).}
+#'   \item{Memory, Executive, Speed}{Simulated test scores (\code{NA} when
+#'     not observed).}
+#'   \item{True_Class}{The true latent class (not used for estimation).}
+#'   \item{Age}{Age at baseline (constant within person).}
+#'   \item{Biomarker}{A baseline biomarker level (constant within person).}
+#' }
+#' @source Simulated; see Details.
+#' @examples
+#' data(neuro_long)
+#' head(neuro_long)
+#' table(table(neuro_long$ID))   # number of visits per person
+"neuro_long"

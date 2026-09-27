@@ -6,7 +6,7 @@
 #' mixing proportions are shown; use \code{pars} to select a subset.
 #'
 #' @details
-#' \code{robust_mcmc_cpp} (called internally by \code{robust_lpa(engine =
+#' \code{mcmc_chain_cpp} (called internally by \code{robust_lpa(engine =
 #' "MCMC")}, once per chain) returns its draws as a nested list
 #' (\code{mu_chain}, \code{sigma_chain}, \code{pi_chain}), not the
 #' array/matrix format \code{bayesplot::mcmc_trace()} expects. This function
@@ -20,12 +20,18 @@
 #'
 #' Parameter names follow the pattern \code{"mu[g,j]"} (mean of variable
 #' \code{j} in profile \code{g}), \code{"sigma[g,j]"} (variance of variable
-#' \code{j} in profile \code{g}), and \code{"pi[g]"} (mixing proportion of
-#' profile \code{g}). Off-diagonal covariance terms are not included by
+#' \code{j} in profile \code{g}), \code{"pi[g]"} (mixing proportion of
+#' profile \code{g}), and, for \code{robust_method = "t"} fits with an
+#' estimated \code{nu}, \code{"nu"} (the t degrees of freedom). Off-diagonal covariance terms are not included by
 #' default to keep the default plot readable; inspect
 #' \code{model$mcmc_draws$chains[[1]]$sigma_chain} directly if you need those.
 #'
-#' @param model A fitted model object returned by \code{\link{robust_lpa}} with \code{engine = "MCMC"}.
+#' @param model A fitted model object returned by \code{\link{robust_lpa}} or
+#'   \code{\link{robust_gmm}} with \code{engine = "MCMC"}. For growth mixture
+#'   fits the parameters are the class trajectories (\code{"beta[g,outcome:term]"}),
+#'   random-effect variances (\code{"D[...]"}), residual variances
+#'   (\code{"sigma2[...]"}), class proportions (\code{"pi[g]"}) and, if
+#'   estimated, \code{"nu"}, all on the original scale.
 #' @param pars Optional character vector of parameter names to visualize (a
 #'   subset of the default \code{"mu[...]"} / \code{"sigma[...]"} / \code{"pi[...]"}
 #'   names described in Details). Default \code{NULL} plots all of them.
@@ -54,11 +60,15 @@ plot_mcmc_chains <- function(model, pars = NULL) {
   }
 
   draws <- model$mcmc_draws
-  if (is.null(draws) || is.null(draws$chains)) {
-    stop("The model does not contain MCMC draws. Ensure the algorithm is saving the chains.")
+  if (inherits(model, "robust_gmm")) {
+    if (is.null(draws$draws)) stop("The model does not contain MCMC draws.")
+    draws_array <- draws$draws
+  } else {
+    if (is.null(draws) || is.null(draws$chains)) {
+      stop("The model does not contain MCMC draws. Ensure the algorithm is saving the chains.")
+    }
+    draws_array <- .reshape_mcmc_draws(draws$chains)
   }
-
-  draws_array <- .reshape_mcmc_draws(draws$chains)
   n_chains <- dim(draws_array)[2]
 
   if (!is.null(pars)) {
@@ -100,22 +110,25 @@ plot_mcmc_chains <- function(model, pars = NULL) {
 #'
 #' @param G Integer, the number of latent profiles.
 #' @param p Integer, the number of variables.
-#' @return A character vector of length \code{G*p + G*p + G} (g varying
-#'   slowest, j fastest within the \code{mu}/\code{sigma} blocks).
+#' @param include_nu Logical, append \code{"nu"} (the estimated t degrees of
+#'   freedom) as the last parameter.
+#' @return A character vector of length \code{G*p + G*p + G} (plus 1 if
+#'   \code{include_nu}; g varying slowest, j fastest within the
+#'   \code{mu}/\code{sigma} blocks).
 #' @keywords internal
 #' @noRd
-.mcmc_param_names <- function(G, p) {
+.mcmc_param_names <- function(G, p, include_nu = FALSE) {
   mu_names <- sprintf("mu[%d,%d]", rep(1:G, each = p), rep(1:p, times = G))
   sigma_names <- sprintf("sigma[%d,%d]", rep(1:G, each = p), rep(1:p, times = G))
   pi_names <- sprintf("pi[%d]", 1:G)
-  c(mu_names, sigma_names, pi_names)
+  c(mu_names, sigma_names, pi_names, if (include_nu) "nu")
 }
 
 #' Flatten a Single MCMC Iteration into a Numeric Parameter Vector
 #'
 #' Converts one iteration's raw \code{mu_chain[[iter]]} /
 #' \code{sigma_chain[[iter]]} / \code{pi_chain[iter, ]} values (as returned
-#' by \code{robust_mcmc_cpp()}) into a single numeric vector, in the same
+#' by \code{mcmc_chain_cpp()}) into a single numeric vector, in the same
 #' order as \code{\link{.mcmc_param_names}}.
 #'
 #' @param mu_iter The \code{mu_chain[[iter]]} element (a list of \code{G} mean vectors).
@@ -142,7 +155,7 @@ plot_mcmc_chains <- function(model, pars = NULL) {
 
 #' Reshape Raw Multi-Chain MCMC Draws into a bayesplot-Compatible Array
 #'
-#' Converts the per-chain list output of \code{robust_mcmc_cpp()} (each
+#' Converts the per-chain list output of \code{mcmc_chain_cpp()} (each
 #' element with \code{mu_chain}, \code{sigma_chain}, and \code{pi_chain}, as
 #' stored in \code{model$mcmc_draws$chains}) into an
 #' \code{[iterations, chains, parameters]} numeric array with named
@@ -150,7 +163,7 @@ plot_mcmc_chains <- function(model, pars = NULL) {
 #' internal MCMC convergence-diagnostics helper (\code{.compute_mcmc_diagnostics}).
 #'
 #' @param chains A list of length \code{n_chains}, each element as returned
-#'   by \code{robust_mcmc_cpp()} (i.e. with \code{mu_chain}, \code{sigma_chain},
+#'   by \code{mcmc_chain_cpp()} (i.e. with \code{mu_chain}, \code{sigma_chain},
 #'   \code{pi_chain}).
 #' @param iters Optional integer vector of iteration indices to keep (e.g. to
 #'   drop burn-in before computing convergence diagnostics). Default
@@ -169,7 +182,8 @@ plot_mcmc_chains <- function(model, pars = NULL) {
   if (is.null(iters)) iters <- seq_len(mcmc_iter)
   n_iters <- length(iters)
 
-  param_names <- .mcmc_param_names(G, p)
+  include_nu <- isTRUE(chains[[1]]$nu_estimated) && !is.null(chains[[1]]$nu_chain)
+  param_names <- .mcmc_param_names(G, p, include_nu = include_nu)
   n_params <- length(param_names)
 
   draws_array <- array(NA_real_, dim = c(n_iters, n_chains, n_params))
@@ -178,8 +192,9 @@ plot_mcmc_chains <- function(model, pars = NULL) {
     ch <- chains[[chain_id]]
     for (i in seq_along(iters)) {
       iter <- iters[i]
-      draws_array[i, chain_id, ] <- .mcmc_iter_to_vector(
-        ch$mu_chain[[iter]], ch$sigma_chain[[iter]], ch$pi_chain[iter, ], G, p
+      draws_array[i, chain_id, ] <- c(
+        .mcmc_iter_to_vector(ch$mu_chain[[iter]], ch$sigma_chain[[iter]], ch$pi_chain[iter, ], G, p),
+        if (include_nu) ch$nu_chain[iter]
       )
     }
   }

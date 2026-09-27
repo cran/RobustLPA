@@ -20,6 +20,7 @@ knitr::opts_chunk$set(
 
 ```{r setup}
 library(RobustLPA)
+set.seed(2026)  # every result below is reproducible, for any number of cores
 ```
 
 ## 1. Introduction
@@ -36,19 +37,21 @@ extreme or mismeasured observations can distort the estimated profile means
 and covariances, sometimes badly enough to change which observations end up
 in which profile (Garcia-Escudero et al., 2010). **RobustLPA** provides:
 
-* Two estimation engines: classical Expectation-Maximization (**EM**) and
-  Bayesian **MCMC** (Gibbs sampling), both with an optional Huber-type
-  robust mode (`robust = TRUE`, the default) that down-weights outlying
-  observations, or a classical (non-robust) mode (`robust = FALSE`) for
-  comparison.
+* Two estimation engines: Expectation-Maximization (**EM**) and Bayesian
+  **MCMC** (Gibbs sampling).
+* Two robust estimators: Huber-type down-weighting of outlying observations
+  (`robust_method = "huber"`, the default) and mixtures of multivariate t
+  distributions (`robust_method = "t"`), a likelihood-based robust model;
+  plus classical Gaussian estimation (`robust = FALSE`) for comparison.
 * Six variance-covariance parameterizations (`model = 1:6`), from a single
   shared diagonal covariance to a fully unconstrained covariance per
   profile, so model complexity can be chosen to fit the data rather than
   assumed.
 * LASSO-type regularization of the profile means, with cross-validated
   penalty selection.
-* Native handling of missing data via Full Information Maximum Likelihood
-  (FIML) -- no need to drop or impute incomplete rows.
+* Native handling of missing data by full-information maximum likelihood
+  (the exact EM for incomplete data; data augmentation in the MCMC engine)
+  -- no need to drop or impute incomplete rows.
 * Tools for the two questions every LPA analysis has to answer: *how many
   profiles?* (`estimate_profiles_robust()`, the bootstrapped likelihood
   ratio test `blrt_robust()`) and *how do profiles relate to variables
@@ -59,11 +62,8 @@ in which profile (Garcia-Escudero et al., 2010). **RobustLPA** provides:
   and for the bootstrap procedures.
 
 This vignette walks through a complete analysis on the dataset bundled with
-the package, `neuro_data`. Progress messages and the log-likelihood-decrease
-warnings that Huber-weighted robust estimation can occasionally emit
-(expected behavior, explained in the "Robust estimation" section of
-`?robust_lpa`) are suppressed below to keep the output readable; they do not
-affect any of the fitted values shown.
+the package, `neuro_data`. Progress messages are suppressed below to keep
+the output readable.
 
 ## 2. The example dataset
 
@@ -144,18 +144,56 @@ table(True_Profile = neuro_data$True_Profile, Assigned = fit_em$assignments)
 
 ### Robust vs. classical estimation
 
-`robust = TRUE` (the default) down-weights each observation's contribution
-to its assigned profile's mean/covariance once its Mahalanobis distance
-exceeds a chi-squared cutoff (controlled by `alpha`). Comparing against
-`robust = FALSE` shows the effect of the contamination built into
-`RT_Stroop`/`RT_TMT`:
+`robust = TRUE` (the default) down-weights outlying observations. With
+`robust_method = "huber"` (the default), each observation's contribution
+to a profile's mean/covariance is down-weighted once its Mahalanobis
+distance to that profile's current robust estimates exceeds a chi-squared
+cutoff (controlled by `alpha`). With `robust_method = "t"`, every profile
+is a multivariate t distribution whose degrees of freedom `nu` are
+estimated from the data: heavy tails absorb outliers automatically, and --
+unlike Huber weighting -- the model has a proper likelihood, so AIC/BIC,
+the bootstrapped likelihood ratio test and the BCH method are used exactly
+as intended. Comparing both against `robust = FALSE` (profile labels are
+arbitrary in every fit, so the profile means are sorted before comparing):
 
 ```{r}
+fit_t <- robust_lpa(x, G = 2, model = 6, n_starts = 5, robust_method = "t")
 fit_classical <- robust_lpa(x, G = 2, model = 6, n_starts = 5, robust = FALSE)
 rbind(
-  robust    = sapply(fit_em$means, `[`, "RT_Stroop"),
-  classical = sapply(fit_classical$means, `[`, "RT_Stroop")
+  huber     = sort(sapply(fit_em$means, `[`, "RT_Stroop")),
+  t         = sort(sapply(fit_t$means, `[`, "RT_Stroop")),
+  classical = sort(sapply(fit_classical$means, `[`, "RT_Stroop"))
 )
+fit_t$nu
+```
+
+On `neuro_data` the contamination is mild relative to the profile-specific
+covariance that `model = 6` allows, so the three estimators agree closely
+and the estimated `nu` sits at its upper bound (the t mixture is then
+essentially Gaussian): robustness costs little when it is not needed. The
+differences grow with the size and number of outliers. Below, 5% of the
+rows of otherwise standard-normal data (true variances 1) receive gross
+errors; the diagonal of the estimated covariance (for the t model: scale)
+matrix shows how much each estimator is pulled by them:
+
+```{r}
+set.seed(6)
+contaminated <- matrix(rnorm(400 * 3), 400, 3)
+idx <- sample(400, 20)
+contaminated[idx, ] <- contaminated[idx, ] + matrix(rnorm(60, 0, 15), 20, 3)
+sapply(list(
+  classical = robust_lpa(contaminated, G = 1, model = 6, robust = FALSE),
+  huber     = robust_lpa(contaminated, G = 1, model = 6),
+  t         = robust_lpa(contaminated, G = 1, model = 6, robust_method = "t")
+), function(f) round(diag(f$covariances[[1]]), 2))
+```
+
+Every fit also reports a robustness weight per observation (`$weights`,
+1 = full weight); the smallest weights point to the most outlying cases:
+
+```{r}
+head(order(fit_t$weights))
+round(head(sort(fit_t$weights)), 3)
 ```
 
 ## 5. LASSO regularization
@@ -174,9 +212,13 @@ TRUE)` selects it by k-fold cross-validation (see Section 7).
 
 ## 6. Missing data (FIML)
 
-`robust_lpa()` handles missing values natively via Full Information Maximum
-Likelihood -- no listwise deletion or imputation needed -- for both engines
-and every variance-covariance model:
+`robust_lpa()` handles missing values natively by full-information maximum
+likelihood -- no listwise deletion or imputation needed -- for both engines
+and every variance-covariance model. Each incomplete row contributes the
+likelihood of its observed entries, and the M-step uses the exact EM for
+incomplete data (missing entries are replaced by their conditional
+expectations and the corresponding conditional covariance is added), so
+the estimates are maximum likelihood when data are missing at random:
 
 ```{r}
 x_na <- x
@@ -253,27 +295,33 @@ single one.
 ## 9. Bayesian MCMC estimation
 
 The MCMC engine estimates the same variance-covariance models via Gibbs
-sampling, optionally under a Bayesian Lasso (Laplace) prior on the profile
-means (`prior_laplace`), and runs multiple chains by default so convergence
-can be checked. `mcmc_iter` is kept small below for a fast vignette build;
-production analyses should use several thousand iterations:
+sampling, under a Bayesian Lasso (Laplace) prior on the profile means
+(`prior_laplace`), and runs multiple chains by default so convergence can
+be checked. The chains start from a preliminary EM fit with dispersed
+perturbations, and draws are relabeled to that EM solution to resolve label
+switching. With `robust_method = "t"` the sampler is an exact Gibbs sampler
+for the multivariate-t mixture. `mcmc_iter` is kept small below for a fast
+vignette build; production analyses should use several thousand
+iterations:
 
 ```{r}
-fit_mcmc <- robust_lpa(x, G = 2, model = 6, engine = "MCMC",
-                        mcmc_iter = 500, n_chains = 4, prior_laplace = 0.1)
+fit_mcmc <- robust_lpa(x, G = 2, model = 6, engine = "MCMC", robust_method = "t",
+                       mcmc_iter = 500, n_chains = 4, prior_laplace = 0.1)
 summary(fit_mcmc)
 ```
 
 The summary's `Rhat`/`ESS` range comes from the classic Gelman-Rubin
 potential scale reduction statistic and effective sample size
 (`fit_mcmc$mcmc_diagnostics` has the full per-parameter table); values of
-`Rhat` near 1 support convergence. `plot_mcmc_chains()` draws overlaid
+`Rhat` near 1 support convergence. `WAIC` (widely applicable information
+criterion; lower is better) is the recommended criterion for comparing
+MCMC fits. `plot_mcmc_chains()` draws overlaid
 per-chain trace plots for visual inspection -- pass `pars` to select a
 subset of the `"mu[...]"`/`"sigma[...]"`/`"pi[...]"` parameters (see
 `?plot_mcmc_chains`) when there are many:
 
-```{r, fig.alt = "MCMC trace plots for two profile means and one mixing proportion"}
-plot_mcmc_chains(fit_mcmc, pars = c("mu[1,1]", "mu[2,1]", "pi[1]"))
+```{r, fig.alt = "MCMC trace plots for two profile means, one mixing proportion and the t degrees of freedom"}
+plot_mcmc_chains(fit_mcmc, pars = c("mu[1,1]", "mu[2,1]", "pi[1]", "nu"))
 ```
 
 ## 10. Relating profiles to an outside variable: the BCH method
@@ -318,9 +366,12 @@ use several hundred for publication-grade inference.)
 
 Every bootstrap- or restart-based procedure in this package accepts a
 `cores` argument: EM random restarts or MCMC chains within a single
-`robust_lpa()` call, the model/profile grid (and cross-validation folds) in
+`robust_lpa()` call, the model/profile grid in
 `estimate_profiles_robust()`, bootstrap replicates in `blrt_robust()`, and
-bootstrap correction replicates in `bch_robust()`. These are not run in
+bootstrap correction replicates in `bch_robust()`. One random seed is drawn
+per unit of work before dispatch, so after `set.seed()` the results are
+identical whatever the number of cores (on the same machine; different
+operating systems or linear-algebra libraries can differ in the last digits). These are not run in
 this vignette (CRAN's check machines cap how many cores a package may use
 during checks), but the calls are otherwise identical to the sequential
 versions above:
@@ -346,6 +397,7 @@ below your machine's core count to avoid oversubscription.
 | Relate profiles to an outside variable | `bch_robust()` |
 | Inspect MCMC convergence | `plot_mcmc_chains()`, `fit$mcmc_diagnostics` |
 | Quick robust centroid (no mixture model) | `robust_mean()` |
+| Latent classes of longitudinal trajectories | `robust_gmm()`, `estimate_gmm_robust()`, `blrt_gmm_robust()`, `plot_robust_gmm()` (see `vignette("robust-growth-mixture")`) |
 
 See the function help pages (`?robust_lpa`, `?estimate_profiles_robust`,
 `?blrt_robust`, `?bch_robust`, `?plot_mcmc_chains`, `?neuro_data`) for full
@@ -369,6 +421,9 @@ Nylund, K. L., Asparouhov, T., & Muthen, B. O. (2007). Deciding on the
 number of classes in latent class analysis and growth mixture modeling: A
 Monte Carlo simulation study. *Structural Equation Modeling*, 14(4),
 535-569.
+
+Peel, D., & McLachlan, G. J. (2000). Robust mixture modelling using the t
+distribution. *Statistics and Computing*, 10(4), 339-348.
 
 Vermunt, J. K. (2010). Latent class modeling with covariates: Two improved
 three-step approaches. *Political Analysis*, 18(4), 450-469.

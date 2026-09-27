@@ -1,0 +1,268 @@
+---
+title: "Robust Growth Mixture Models"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Robust Growth Mixture Models}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 3.8,
+  warning = FALSE,
+  message = FALSE
+)
+```
+
+```{r setup}
+library(RobustLPA)
+set.seed(2026)
+```
+
+## 1. From profiles to trajectories
+
+`robust_lpa()` finds latent profiles in variables measured once. When the
+same variables are measured repeatedly, the question often becomes *how
+people change*: do they all follow one average trajectory, or are there
+subgroups with different courses (stable, slowly declining, rapidly
+declining)? Growth mixture models (GMM; Verbeke & Lesaffre, 1996; Muthen &
+Shedden, 1999) answer this question: they are finite mixtures of linear
+mixed-effects models, in which every latent class has its own mean
+trajectory, and persons deviate from their class trajectory through random
+effects. Without random effects the model is a latent class growth
+analysis (LCGA; Nagin, 1999).
+
+`robust_gmm()` fits these models for one or several outcomes at once, with
+
+* **unbalanced data**: every person contributes the likelihood of the values
+  actually observed, at his/her own times, so persons with missed visits or
+  who dropped out are kept, and the estimates are valid when drop-out
+  depends on earlier observed values (missing at random);
+* **robust classes**: multivariate-t classes (`robust_method = "t"`), whose
+  heavy tails absorb persons with outlying trajectories or gross errors
+  instead of creating spurious classes;
+* **two estimation engines** (EM and MCMC); and
+* **LASSO penalties** that identify classes that do not change on an
+  outcome and outcomes that do not differ between classes.
+
+## 2. Example data
+
+`neuro_long` contains simulated annual assessments (up to six visits) of 400
+persons on three tests, in long format. Three latent classes were
+simulated: a stable class, a slowly declining class and a fast declining
+class on `Memory` and `Executive`; `Speed` declines slightly and equally in
+all classes. Persons drop out more often after a low Memory score, and a
+few scores are corrupted by gross errors (see `?neuro_long`).
+
+```{r}
+data(neuro_long)
+head(neuro_long)
+table(visits = table(neuro_long$ID))
+```
+
+## 3. Fitting a robust growth mixture model
+
+The data are in long format: one row per person and visit, with the
+person identifier (`id`), the time variable (`time`, here years since
+baseline, so that the intercept is the baseline level) and the outcomes.
+By default every class has a linear trajectory (`degree = 1`), persons have
+correlated random intercepts and slopes (`random = "slope"`), and the
+random-effect covariance and the residual variances are shared by the
+classes (`re_cov = "equal"`, `resid_var = "equal"`), the usual and more
+stable specification.
+
+```{r}
+fit <- robust_gmm(neuro_long, id = "ID", time = "Year",
+                  outcomes = c("Memory", "Executive"), G = 3,
+                  robust_method = "t", n_starts = 3)
+fit
+```
+
+The estimated trajectories are on the original scale of the outcomes:
+
+```{r}
+summary(fit)
+```
+
+```{r, fig.alt = "Class mean trajectories over the individual trajectories"}
+plot_robust_gmm(fit)
+```
+
+`fit$probabilities` and `fit$assignments` give the posterior class
+probabilities and the modal class of every person (in the order of
+`fit$ids`); `fit$weights` gives each person's robustness weight, which is
+small for the persons whose trajectory is far from every class (here, the
+persons with a gross error):
+
+```{r}
+head(sort(fit$weights))
+```
+
+## 4. How many classes? Robust vs. classical estimation
+
+`estimate_gmm_robust()` fits several numbers of classes at once. Comparing
+the classical (Gaussian) and the robust (t) models shows why robustness
+matters here: the classical model uses an extra class to accommodate a
+handful of persons with gross errors (note its minimum class size), and
+BIC then favours too many classes; the t model does not.
+
+```{r}
+classical <- estimate_gmm_robust(neuro_long, id = "ID", time = "Year",
+                                 outcomes = c("Memory", "Executive"),
+                                 n_classes = 2:4, robust = FALSE, n_starts = 2)
+robust <- estimate_gmm_robust(neuro_long, id = "ID", time = "Year",
+                              outcomes = c("Memory", "Executive"),
+                              n_classes = 2:4, robust_method = "t", n_starts = 2)
+classical$fit_table[, c("Model", "LogLik", "BIC", "Entropy", "Min_Size")]
+robust$fit_table[, c("Model", "LogLik", "BIC", "Entropy", "Min_Size")]
+```
+
+With the t model the log-likelihood is a proper likelihood, so the
+bootstrapped likelihood ratio test can complement BIC. It simulates data
+from the fitted `G - 1`-class model on the observed visit schedule and
+missingness pattern (slow: use 200 or more samples and several cores):
+
+```{r, eval = FALSE}
+blrt_gmm_robust(neuro_long, id = "ID", time = "Year",
+                outcomes = c("Memory", "Executive"), G = 3,
+                robust_method = "t", n_samples = 200, cores = 4)
+```
+
+## 5. LASSO for trajectories
+
+With several outcomes, two questions are natural: *on which outcomes does
+each class actually change?* and *which outcomes differentiate the classes
+at all?* Two penalties answer them:
+
+* `lambda_growth` shrinks the growth terms (slope, ...) of every class toward
+  zero: a slope set exactly to zero identifies a class that is stable on
+  that outcome;
+* `lambda_diff` shrinks the trajectories of the classes toward each other;
+  with `group_diff = TRUE` all the coefficients of an outcome are penalized
+  together, so an outcome that does not differ between classes is removed
+  from the class separation.
+
+The penalties are adaptive by default: each term is weighted by its
+unpenalized estimate, so that `lambda = z^2 / N` sets to zero, roughly, the
+terms whose Wald statistic is below `z`. Here `z = 3`:
+
+```{r}
+N <- length(unique(neuro_long$ID))
+fit_l <- robust_gmm(neuro_long, id = "ID", time = "Year",
+                    outcomes = c("Memory", "Executive", "Speed"), G = 3,
+                    robust_method = "t", n_starts = 2,
+                    lambda_growth = 9 / N, lambda_diff = 9 / N, group_diff = TRUE,
+                    relax = TRUE)
+summary(fit_l)
+```
+
+`Speed` is recognized as an outcome that does not differentiate the classes
+(the three classes share its trajectory), and the stable class has exactly
+zero slopes on `Memory` and `Executive`. With `relax = TRUE` the selected
+model is refitted without penalty (relaxed Lasso), so the reported
+estimates are not shrunk; its BIC counts only the free coefficients, and is
+lower than the BIC of the unpenalized three-outcome model:
+
+```{r}
+fit_u <- robust_gmm(neuro_long, id = "ID", time = "Year",
+                    outcomes = c("Memory", "Executive", "Speed"), G = 3,
+                    robust_method = "t", n_starts = 2)
+rbind(unpenalized = fit_u$fit[, c("LogLik", "Parameters", "BIC")],
+      lasso_relaxed = fit_l$fit[, c("LogLik", "Parameters", "BIC")])
+```
+
+Instead of fixing `z`, `estimate_gmm_robust(tune_penalty = "bic")` or
+`tune_penalty = "cv"` (cross-validation over persons) chooses it from a
+grid:
+
+```{r, eval = FALSE}
+estimate_gmm_robust(neuro_long, id = "ID", time = "Year",
+                    outcomes = c("Memory", "Executive", "Speed"), n_classes = 3,
+                    tune_penalty = "bic", z_grid = c(1.5, 2, 2.5, 3, 4),
+                    robust_method = "t", group_diff = TRUE, relax = TRUE)
+```
+
+## 6. What distinguished the classes at baseline?
+
+`bch_robust()` relates the trajectory classes to a variable that was not
+used to estimate them -- a baseline characteristic or a distal outcome --
+correcting for classification error (Bolck, Croon & Hagenaars, 2004). The
+auxiliary variable must have one value per person, in the order of
+`fit$ids`:
+
+```{r}
+baseline <- neuro_long[!duplicated(neuro_long$ID), ]
+baseline <- baseline[match(fit$ids, baseline$ID), ]
+bch_biomarker <- bch_robust(fit, baseline$Biomarker)
+round(bch_biomarker$Profile_Means)
+bch_biomarker$ANOVA_Table
+```
+
+For publication, `correction = "bootstrap"` adds standard errors that
+account for the uncertainty of the classification (whole persons are
+resampled and the growth mixture model is refitted every time).
+
+## 7. Bayesian estimation
+
+The MCMC engine fits the same models by Gibbs sampling (with the LASSO
+penalties turned into Bayesian-Lasso priors). It starts from the EM
+solution and reports the WAIC and the Gelman-Rubin diagnostics:
+
+```{r}
+fit_b <- robust_gmm(neuro_long, id = "ID", time = "Year", outcomes = "Memory",
+                    G = 3, robust_method = "t", engine = "MCMC",
+                    mcmc_iter = 600, n_chains = 2, n_starts = 2)
+fit_b
+```
+
+```{r, fig.alt = "MCMC trace plots for the Memory slopes of the three classes"}
+plot_mcmc_chains(fit_b, pars = c("beta[1,Memory:Year]", "beta[2,Memory:Year]",
+                                 "beta[3,Memory:Year]", "nu"))
+```
+
+## 8. Practical recommendations
+
+* Express time in meaningful units and center it where the intercept should
+  be interpreted (e.g. years since baseline).
+* Start with shared variance components (`re_cov = "equal"`,
+  `resid_var = "equal"`) and a random intercept and slope; free them only if
+  the data support it (compare BIC).
+* Use several starts (`n_starts`) and check the smallest class size: tiny
+  classes are often spurious.
+* Prefer `robust_method = "t"`: it keeps a proper likelihood, so BIC, the
+  BLRT and BCH are used as intended.
+* Use the LASSO to *select*, and report the relaxed estimates
+  (`relax = TRUE`).
+
+## References
+
+Bolck, A., Croon, M., & Hagenaars, J. (2004). Estimating latent structure
+models with categorical variables: One-step versus three-step estimators.
+*Political Analysis*, 12(1), 3-27.
+
+Muthen, B., & Shedden, K. (1999). Finite mixture modeling with mixture
+outcomes using the EM algorithm. *Biometrics*, 55(2), 463-469.
+
+Nagin, D. S. (1999). Analyzing developmental trajectories: A
+semiparametric, group-based approach. *Psychological Methods*, 4(2),
+139-157.
+
+Pinheiro, J. C., Liu, C., & Wu, Y. N. (2001). Efficient algorithms for
+robust estimation in linear mixed-effects models using the multivariate t
+distribution. *Journal of Computational and Graphical Statistics*, 10(2),
+249-276.
+
+Verbeke, G., & Lesaffre, E. (1996). A linear mixed-effects model with
+heterogeneity in the random-effects population. *Journal of the American
+Statistical Association*, 91(433), 217-221.
+
+Xie, B., Pan, W., & Shen, X. (2008). Variable selection in penalized
+model-based clustering via regularization on grouped parameters.
+*Biometrics*, 64(3), 921-930.
+
+Zou, H. (2006). The adaptive lasso and its oracle properties. *Journal of
+the American Statistical Association*, 101(476), 1418-1429.

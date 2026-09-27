@@ -18,19 +18,23 @@
 .bch_point_estimate <- function(z, assignments, aux_var, warn_zero_weight = TRUE) {
   G <- ncol(z)
 
-  # ---- Classification probability matrix D and BCH weight matrix W = D^-1 --
-  # D[g, c] = P(hat_C = c | C = g), estimated as the average posterior
-  # probability of "true" profile g among observations modally assigned to c
-  # (Bolck, Croon, & Hagenaars, 2004).
+  # ---- Classification error matrix D and BCH weight matrix W = D^-1 --------
+  # D[t, s] = P(hat_C = s | C = t), estimated as the share of profile t's
+  # expected membership (sum_i p_it) that is modally assigned to s:
+  #   D[t, s] = sum_{i: hat_C_i = s} p_it / sum_i p_it
+  # (Bolck, Croon, & Hagenaars, 2004; Vermunt, 2010). Rows sum to 1.
+  # NOTE: averaging posteriors *within* assigned class s (colMeans) would
+  # instead estimate P(C = t | hat_C = s), the reverse conditional, which
+  # leaves residual bias whenever profiles differ in size or separation.
   class_counts <- table(factor(assignments, levels = 1:G))
   if (any(class_counts == 0)) {
     stop("At least one profile has zero modally-assigned observations; the classification matrix D cannot be estimated. This can happen with highly overlapping or near-empty profiles.")
   }
 
   D_matrix <- matrix(0, nrow = G, ncol = G)
-  for (c in 1:G) {
-    idx_c <- which(assignments == c)
-    D_matrix[, c] <- colMeans(z[idx_c, , drop = FALSE])
+  z_tot <- colSums(z)
+  for (s in 1:G) {
+    D_matrix[, s] <- colSums(z[assignments == s, , drop = FALSE]) / z_tot
   }
 
   W_matrix <- tryCatch(solve(D_matrix), error = function(e) {
@@ -46,9 +50,11 @@
   aux_valid <- aux_var[valid_idx]
 
   # ---- BCH-corrected profile means -----------------------------------------
-  # mu_BCH_g = sum_i W[g, Chat_i] * Y_i / sum_i W[g, Chat_i], summed over ALL
-  # n_valid observations -- see bch_robust()'s Details.
-  weights_per_obs <- W_matrix[, assignments_valid, drop = FALSE]  # G x n_valid
+  # mu_BCH_g = sum_i W[Chat_i, g] * Y_i / sum_i W[Chat_i, g], summed over ALL
+  # n_valid observations -- see bch_robust()'s Details. W = D^-1 maps the
+  # distribution over assigned classes back to the true classes, so its rows
+  # are indexed by the assigned class and its columns by the true profile.
+  weights_per_obs <- t(W_matrix[assignments_valid, , drop = FALSE])  # G x n_valid
   weighted_means <- numeric(G)
   for (g in 1:G) {
     w_g <- weights_per_obs[g, ]
@@ -74,7 +80,7 @@
 #'
 #' Fits the significance test used by \code{\link{bch_robust}}'s main
 #' (fixed-\strong{D}) F-test: a one-way weighted ANOVA on the "long" data set
-#' (one row per observation per profile, weighted by \eqn{W_{g,\hat{C}_i}}),
+#' (one row per observation per profile, weighted by \eqn{W_{\hat{C}_i,g}}),
 #' via direct weighted normal equations rather than \code{stats::lm()}/
 #' \code{stats::aov()}, because the BCH weights are frequently negative and
 #' base R's weighted-least-squares machinery cannot handle that (it internally
@@ -95,7 +101,7 @@
   long_w <- numeric(G * n_valid)
   for (g in 1:G) {
     idx_range <- ((g - 1) * n_valid + 1):(g * n_valid)
-    long_w[idx_range] <- W_matrix[g, assignments_valid]
+    long_w[idx_range] <- W_matrix[assignments_valid, g]
   }
 
   X_design <- stats::model.matrix(~long_Class)
@@ -148,20 +154,23 @@
 #' Let \eqn{\hat{p}_{ig}} be the posterior probability that observation
 #' \eqn{i} belongs to profile \eqn{g} (\code{model$probabilities}), and let
 #' \eqn{\hat{C}_i} be its modal (hard) assignment (\code{model$assignments}).
-#' The classification probability matrix \strong{D} is estimated as
-#' \deqn{D_{g,c} = P(\hat{C} = c \mid C = g) \approx \frac{1}{N_c} \sum_{i:\, \hat{C}_i = c} \hat{p}_{ig}}
-#' (Bolck, Croon, & Hagenaars, 2004). The BCH weight matrix is
-#' \eqn{W = D^{-1}}. The classification-error-corrected mean of the auxiliary
-#' variable \eqn{Y} for profile \eqn{g} is
-#' \deqn{\hat{\mu}^{BCH}_g = \frac{\sum_{i=1}^{n} W_{g,\hat{C}_i} Y_i}{\sum_{i=1}^{n} W_{g,\hat{C}_i}}}
-#' (Vermunt, 2010, eq. 13-15; Bolck et al., 2004), summed over \emph{every}
-#' observation: each contributes to every profile's mean with a (possibly
-#' negative) cross-class weight \eqn{W_{g,\hat{C}_i}}, which is what removes
-#' the attenuation bias of a naive "reweight only your own class" analysis.
+#' The classification error matrix \strong{D} is estimated as
+#' \deqn{D_{t,s} = P(\hat{C} = s \mid C = t) \approx \frac{\sum_{i:\, \hat{C}_i = s} \hat{p}_{it}}{\sum_{i=1}^{n} \hat{p}_{it}}}
+#' (Bolck, Croon, & Hagenaars, 2004; Vermunt, 2010), so each row of
+#' \strong{D} sums to 1. The BCH weight matrix is \eqn{W = D^{-1}}, and the
+#' classification-error-corrected mean of the auxiliary variable \eqn{Y}
+#' for profile \eqn{t} is
+#' \deqn{\hat{\mu}^{BCH}_t = \frac{\sum_{i=1}^{n} W_{\hat{C}_i,t} Y_i}{\sum_{i=1}^{n} W_{\hat{C}_i,t}}}
+#' summed over \emph{every} observation: each contributes to every profile's
+#' mean with a (possibly negative) cross-class weight
+#' \eqn{W_{\hat{C}_i,t}}, which is what removes the attenuation bias of a
+#' naive comparison of modal-assignment groups. This is unbiased under the
+#' BCH assumption that \eqn{Y} is independent of the modal assignment given
+#' the true profile.
 #'
 #' The main (\code{$ANOVA_Table}) significance test is a one-way weighted
 #' ANOVA on the equivalent "long" data set (one row per observation per
-#' profile, weighted by \eqn{W_{g,\hat{C}_i}}), fit by direct weighted normal
+#' profile, weighted by \eqn{W_{\hat{C}_i,g}}), fit by direct weighted normal
 #' equations rather than \code{stats::lm()}/\code{stats::aov()}, because the
 #' BCH weights are frequently negative and base R's weighted-least-squares
 #' machinery cannot handle that.
@@ -182,7 +191,9 @@
 #' (using the exact same specification as \code{model}, via its stored
 #' \code{$call_args}) and recomputes \strong{D}/\strong{W}/the profile means
 #' on each resample, so the resulting bootstrap variability genuinely
-#' reflects step-1 estimation uncertainty (unlike the fixed-D F-test). This
+#' reflects step-1 estimation uncertainty (unlike the fixed-D F-test); for
+#' \code{robust_gmm()} fits whole persons (with all their occasions) are
+#' resampled (a cluster bootstrap). This
 #' yields bootstrap standard errors and percentile confidence intervals for
 #' \code{Profile_Means}, plus a Wald chi-square test of "all profile means
 #' equal" using the bootstrap covariance -- reported in
@@ -190,15 +201,21 @@
 #' p-value for publication-grade inference. It is \emph{not} the Bakk et al.
 #' (2014) analytic formula; treat it as a practical approximation with the
 #' same goal (each refit's arbitrary profile labels are first aligned to
-#' \code{model}'s via a nearest-mean matching, to avoid mixing different
-#' real-world profiles together across resamples -- see the package source
-#' for details). It is off (\code{"none"}) by default
+#' \code{model}'s by an exact optimal assignment of standardized profile
+#' means, to avoid mixing different real-world profiles together across
+#' resamples). Each refit runs sequentially (\code{cores = 1}) inside its
+#' bootstrap replicate, whatever \code{cores} the original model used, so
+#' parallelism happens only across replicates. It is off (\code{"none"}) by default
 #' because it requires \code{n_boot} additional full model refits and is
 #' therefore substantially slower; use \code{cores > 1} to parallelize it.
 #'
-#' @param model A fitted robust LPA model object returned by \code{\link{robust_lpa}}.
+#' @param model A fitted model returned by \code{\link{robust_lpa}} (latent
+#'   profiles) or \code{\link{robust_gmm}} (latent classes of trajectories).
 #' @param aux_var A numeric vector of the continuous auxiliary (distal outcome)
-#'   variable, of length \code{nrow(model$probabilities)}. \code{NA} values are
+#'   variable, of length \code{nrow(model$probabilities)}: one value per
+#'   observation for \code{robust_lpa()} fits, one value per person, in the
+#'   order of \code{model$ids}, for \code{robust_gmm()} fits (e.g. a
+#'   baseline characteristic, or a distal outcome). \code{NA} values are
 #'   dropped listwise before the BCH calculations.
 #' @param correction String, either \code{"none"} (default; the fixed-D
 #'   F-test only) or \code{"bootstrap"} (also compute the bootstrap
@@ -217,8 +234,8 @@
 #'   \describe{
 #'     \item{Profile_Means}{Named numeric vector of BCH bias-corrected profile means of \code{aux_var}.}
 #'     \item{ANOVA_Table}{A data.frame with \code{Df}, \code{Sum_Sq}, \code{Mean_Sq}, \code{F_value}, and \code{p_value} for the "Class" and "Residuals" rows (see the fixed-D caveat in Details).}
-#'     \item{Classification_Matrix}{The \code{G x G} matrix \strong{D} of classification probabilities.}
-#'     \item{Classification_Weights}{The \code{G x G} BCH weight matrix \eqn{W = D^{-1}}.}
+#'     \item{Classification_Matrix}{The \code{G x G} classification error matrix \strong{D}, with \code{D[t, s]} = P(assigned \code{s} | true profile \code{t}); rows sum to 1.}
+#'     \item{Classification_Weights}{The \code{G x G} BCH weight matrix \eqn{W = D^{-1}} (rows: assigned profile; columns: true profile).}
 #'     \item{N_Used}{Integer, the number of observations retained after removing missing \code{aux_var} values.}
 #'     \item{Bootstrap_Correction}{\code{NULL} unless \code{correction = "bootstrap"}, in which case a list with \code{n_boot_used}, \code{n_boot_failed}, \code{SE} and \code{CI_lower}/\code{CI_upper} (per profile), and the overall \code{Wald_stat}/\code{Wald_df}/\code{Wald_p_value} test of equal profile means (see Details).}
 #'   }
@@ -237,7 +254,8 @@
 #' data(neuro_data)
 #' # Fit the model on Memory and RT_Stroop only
 #' x <- scale(as.matrix(neuro_data[, c("Memory", "RT_Stroop")]))
-#' fit <- suppressWarnings(robust_lpa(data = x, G = 2, model = 1, n_starts = 3))
+#' set.seed(1)
+#' fit <- robust_lpa(data = x, G = 2, model = 1, n_starts = 3)
 #' summary(fit)  # profile means for the two fitted variables
 #' # Test RT_TMT (not used to fit the model) as an auxiliary outcome
 #' bch_res <- bch_robust(fit, neuro_data$RT_TMT)
@@ -248,8 +266,7 @@
 #' # Add the bootstrap classification-uncertainty correction (slower: refits
 #' # the model n_boot times). A small n_boot here is just for a fast demo --
 #' # use several hundred for publication-grade inference.
-#' bch_res_boot <- suppressWarnings(bch_robust(fit, neuro_data$RT_TMT,
-#'                                              correction = "bootstrap", n_boot = 30))
+#' bch_res_boot <- bch_robust(fit, neuro_data$RT_TMT, correction = "bootstrap", n_boot = 30)
 #' bch_res_boot$Bootstrap_Correction
 #' }
 #' @export
@@ -257,10 +274,12 @@ bch_robust <- function(model, aux_var, correction = c("none", "bootstrap"), n_bo
   correction <- match.arg(correction)
 
   if (is.null(model$probabilities) || is.null(model$assignments)) {
-    stop("Invalid model object. Please provide a model fitted with robust_lpa().")
+    stop("Invalid model object. Please provide a model fitted with robust_lpa() or robust_gmm().")
   }
+  is_gmm <- inherits(model, "robust_gmm")
   if (length(aux_var) != nrow(model$probabilities)) {
-    stop("The length of the auxiliary variable must match the number of observations in the model.")
+    stop("The length of the auxiliary variable must match the number of ",
+         if (is_gmm) "persons in the model (one value per element of `model$ids`)." else "observations in the model.")
   }
   if (!is.numeric(aux_var)) stop("`aux_var` must be numeric.")
 
@@ -292,6 +311,9 @@ bch_robust <- function(model, aux_var, correction = c("none", "bootstrap"), n_bo
     orig_means <- model$means
     boot_data_full <- model$data
     call_args <- model$call_args
+    # standardize variables when matching profile labels across refits
+    match_scale <- if (is_gmm) NULL else sqrt(pmax(Reduce(`+`, Map(function(S, w) w * diag(S),
+                                                                   model$covariances, model$proportions)), 1e-8))
 
     # One bootstrap replicate: resample observations (data row + aux_var
     # value together, preserving their pairing), refit the identical
@@ -303,12 +325,20 @@ bch_robust <- function(model, aux_var, correction = c("none", "bootstrap"), n_bo
     run_one_boot <- function(b) {
       tryCatch({
         idx <- sample.int(n, size = n, replace = TRUE)
-        boot_data <- boot_data_full[idx, , drop = FALSE]
         boot_aux <- aux_var[idx]
+        if (is_gmm) {
+          # resample persons (with all their occasions) and refit robust_gmm()
+          rf <- .gmm_refit_resample(model, idx)
+          pe_b <- .bch_point_estimate(rf$z, rf$assignments, boot_aux, warn_zero_weight = FALSE)
+          return(pe_b$weighted_means)
+        }
+        boot_data <- boot_data_full[idx, , drop = FALSE]
 
-        boot_fit <- do.call(robust_lpa, modifyList(call_args, list(data = boot_data)))
+        boot_fit <- suppressWarnings(
+          do.call(robust_lpa, modifyList(call_args, list(data = boot_data, cores = 1)))
+        )
 
-        perm <- .match_profile_labels(orig_means, boot_fit$means)
+        perm <- .match_profile_labels(orig_means, boot_fit$means, scale = match_scale)
         inv_perm <- integer(G)
         inv_perm[perm] <- seq_len(G)
         z_aligned <- boot_fit$probabilities[, perm, drop = FALSE]
@@ -321,7 +351,7 @@ bch_robust <- function(model, aux_var, correction = c("none", "bootstrap"), n_bo
 
     boot_results <- .run_parallel(
       cores, n_boot, run_one_boot,
-      export_vars = c("n", "G", "boot_data_full", "aux_var", "call_args", "orig_means"),
+      export_vars = c("n", "G", "boot_data_full", "aux_var", "call_args", "orig_means", "match_scale", "is_gmm", "model"),
       export_env = environment()
     )
     boot_means_list <- Filter(Negate(is.null), boot_results)
